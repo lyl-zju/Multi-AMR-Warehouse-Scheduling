@@ -1,0 +1,4 @@
+event_id,event_type,target_type,target_id,start_time,end_time,affected_tasks,affected_amrs,impact_count,impact_reason
+E01,edge_block,edge,e10,18.0,24.0,T06,AMR1,1,edge e10 occupied during block window
+E02,amr_delay,amr,AMR2,24.0,30.0,T10,AMR2,1,AMR AMR2 delayed by 6 time units
+E03,new_task,task,T13,,,T13,AMR4,1,new task inserted with placeholder assignment

@@ -1,0 +1,5 @@
+amr_id,task_count,task_sequence,missing_transition_count,missing_loaded_path_count,estimated_finish_time,estimated_total_delay,assignment_method
+AMR1,2,T01->T06,0,0,33.0,0.0,baseline_interface_stub
+AMR2,3,T02->T08->T10,0,0,40.0,0.0,baseline_interface_stub
+AMR3,3,T05->T09->T11,1,0,39.0,0.0,baseline_interface_stub
+AMR4,4,T03->T04->T07->T12,1,0,37.0,0.0,baseline_interface_stub

@@ -1,0 +1,4 @@
+conflict_id,time,location,location_type,involved_amrs,involved_tasks,involved_path_uids,capacity,active_count,repair_action,status,conflict_method
+C001,2,J1,node,AMR1;AMR3,T01;T05,CHG1__P6__path_1;IN1__P1__path_1,1,2,not_repaired_interface_stub,detected,interval_capacity_check_stub
+C002,26,P6,node,AMR2;AMR3,T10;T11,SORT1__P3__path_1;SORT2__P5__path_1,1,2,not_repaired_interface_stub,detected,interval_capacity_check_stub
+C003,24,P9,node,AMR2;AMR3,T10;T11,SORT1__P3__path_1;SORT2__P5__path_1,1,2,not_repaired_interface_stub,detected,interval_capacity_check_stub
