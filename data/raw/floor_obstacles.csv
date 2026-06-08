@@ -1,0 +1,12 @@
+obstacle_id,x,y,width,height,obstacle_type,label
+RACK_A,3.35,0.65,0.85,2.15,rack,Rack Block A
+RACK_B,3.95,4.55,1.25,1.25,rack,Rack Block B
+RACK_C,5.35,0.70,1.10,1.75,rack,Rack Block C
+RACK_D,6.45,4.45,1.45,0.95,rack,Rack Block D
+RACK_E,7.65,0.85,0.85,2.05,rack,Rack Block E
+RACK_F,5.15,3.05,1.05,0.65,rack,Rack Block F
+WALL_TOP,-0.8,6.2,13.6,0.2,wall,Top Wall
+WALL_BOTTOM,-0.8,-0.8,13.6,0.2,wall,Bottom Wall
+WALL_LEFT,-0.8,-0.8,0.2,7.4,wall,Left Wall
+WALL_RIGHT,12.6,-0.8,0.2,7.4,wall,Right Wall
+DYN_BLOCK_01,6.55,2.95,1.05,0.55,dynamic_block,Temporary Block Area

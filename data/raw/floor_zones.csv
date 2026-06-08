@@ -1,0 +1,6 @@
+zone_id,x,y,width,height,zone_type,label
+Z_IN, -0.55,0.35,1.05,5.3,inbound,Inbound Area
+Z_SORT,9.35,1.45,1.35,3.1,sorting,Sorting Area
+Z_OUT,11.35,1.35,1.25,3.3,outbound,Outbound Area
+Z_CHG1,0.55,-0.55,1.0,0.75,charger,Charging Area 1
+Z_CHG2,8.45,-0.55,1.0,0.75,charger,Charging Area 2

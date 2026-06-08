@@ -3,7 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.lines import Line2D
-from matplotlib.patches import FancyArrowPatch
+from matplotlib.patches import Rectangle
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -11,73 +11,101 @@ DATA_DIR = PROJECT_ROOT / "data" / "raw"
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 
 
-NODE_STYLE = {
-    "inbound": {"color": "#2a9d8f", "marker": "s", "size": 140},
-    "outbound": {"color": "#e76f51", "marker": "s", "size": 140},
-    "shelf": {"color": "#f4a261", "marker": "o", "size": 120},
-    "sorting": {"color": "#457b9d", "marker": "D", "size": 130},
-    "charger": {"color": "#8d5a97", "marker": "P", "size": 150},
-    "junction": {"color": "#6c757d", "marker": "o", "size": 90},
+ZONE_STYLE = {
+    "inbound": {"facecolor": "#d9f3ee", "edgecolor": "#2a9d8f"},
+    "outbound": {"facecolor": "#fde2d8", "edgecolor": "#e76f51"},
+    "sorting": {"facecolor": "#dcebf6", "edgecolor": "#457b9d"},
+    "charger": {"facecolor": "#eadcf0", "edgecolor": "#8d5a97"},
 }
 
-EDGE_STYLE = {
-    "normal": {"color": "#8a8f98", "linestyle": "-", "linewidth": 2.0},
-    "narrow": {"color": "#d08c28", "linestyle": "--", "linewidth": 2.2},
-    "dynamic": {"color": "#c1121f", "linestyle": ":", "linewidth": 2.8},
-    "oneway": {"color": "#2b6cb0", "linestyle": "-", "linewidth": 2.3},
+OBSTACLE_STYLE = {
+    "rack": {"facecolor": "#f4a261", "edgecolor": "#a65f12", "alpha": 0.72},
+    "wall": {"facecolor": "#4b5563", "edgecolor": "#111827", "alpha": 0.86},
+    "dynamic_block": {"facecolor": "#f7b7bd", "edgecolor": "#c1121f", "alpha": 0.75},
+}
+
+POINT_STYLE = {
+    "inbound": {"color": "#2a9d8f", "marker": "s", "size": 130},
+    "outbound": {"color": "#e76f51", "marker": "s", "size": 130},
+    "shelf": {"color": "#b45309", "marker": "o", "size": 105},
+    "sorting": {"color": "#457b9d", "marker": "D", "size": 125},
+    "charger": {"color": "#8d5a97", "marker": "P", "size": 145},
+    "junction": {"color": "#6c757d", "marker": ".", "size": 45},
 }
 
 
 def load_data():
     nodes = pd.read_csv(DATA_DIR / "nodes.csv")
-    edges = pd.read_csv(DATA_DIR / "edges.csv")
     amrs = pd.read_csv(DATA_DIR / "amrs.csv")
     tasks = pd.read_csv(DATA_DIR / "tasks.csv")
-    return nodes, edges, amrs, tasks
+    zones = pd.read_csv(DATA_DIR / "floor_zones.csv", skipinitialspace=True)
+    obstacles = pd.read_csv(DATA_DIR / "floor_obstacles.csv", skipinitialspace=True)
+    return nodes, amrs, tasks, zones, obstacles
 
 
-def draw_edge(ax, x1, y1, x2, y2, style, directed):
-    if directed:
-        arrow = FancyArrowPatch(
-            (x1, y1),
-            (x2, y2),
-            arrowstyle="-|>",
-            mutation_scale=14,
-            linewidth=style["linewidth"],
-            linestyle=style["linestyle"],
-            color=style["color"],
-            shrinkA=12,
-            shrinkB=12,
+def draw_rectangles(ax, rows, style_map, style_field, label_mode="center"):
+    for item in rows.itertuples(index=False):
+        item_type = getattr(item, style_field)
+        style = style_map.get(item_type, {})
+        rect = Rectangle(
+            (float(item.x), float(item.y)),
+            float(item.width),
+            float(item.height),
+            facecolor=style.get("facecolor", "#e5e7eb"),
+            edgecolor=style.get("edgecolor", "#6b7280"),
+            linewidth=1.6,
+            alpha=style.get("alpha", 0.35),
             zorder=1,
         )
-        ax.add_patch(arrow)
-    else:
-        ax.plot(
-            [x1, x2],
-            [y1, y2],
-            color=style["color"],
-            linestyle=style["linestyle"],
-            linewidth=style["linewidth"],
-            zorder=1,
+        ax.add_patch(rect)
+
+        if label_mode == "none" or item_type == "wall":
+            continue
+
+        label_x = float(item.x) + float(item.width) / 2
+        label_y = float(item.y) + float(item.height) / 2
+        va = "center"
+        color = "#111827"
+        if label_mode == "obstacle":
+            label_y = float(item.y) + float(item.height) + 0.08
+            va = "bottom"
+            color = style.get("edgecolor", "#111827")
+
+        ax.text(
+            label_x,
+            label_y,
+            item.label,
+            fontsize=8,
+            ha="center",
+            va=va,
+            color=color,
+            zorder=2,
         )
 
 
-def plot_network(nodes, edges, amrs, tasks):
-    pos = {row.node_id: (row.x, row.y) for row in nodes.itertuples()}
-    fig, ax = plt.subplots(figsize=(12, 6.5), dpi=160)
+def plot_floor_plan(nodes, amrs, tasks, zones, obstacles):
+    pos = {row.node_id: (float(row.x), float(row.y)) for row in nodes.itertuples(index=False)}
+    fig, ax = plt.subplots(figsize=(12.5, 7), dpi=160)
 
-    for edge in edges.itertuples():
-        x1, y1 = pos[edge.from_node]
-        x2, y2 = pos[edge.to_node]
-        style = EDGE_STYLE.get(edge.edge_type, EDGE_STYLE["normal"])
-        draw_edge(ax, x1, y1, x2, y2, style, bool(edge.directed))
-        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-        ax.text(mx, my + 0.1, edge.edge_id, fontsize=7, color="#4b5563", ha="center")
+    floor = Rectangle(
+        (-0.8, -0.8),
+        13.6,
+        7.4,
+        facecolor="#fbfbf7",
+        edgecolor="#111827",
+        linewidth=2.0,
+        zorder=0,
+    )
+    ax.add_patch(floor)
 
-    for node_type, style in NODE_STYLE.items():
+    draw_rectangles(ax, zones, ZONE_STYLE, "zone_type")
+    draw_rectangles(ax, obstacles, OBSTACLE_STYLE, "obstacle_type", label_mode="obstacle")
+
+    for node_type, style in POINT_STYLE.items():
         group = nodes[nodes["node_type"] == node_type]
         if group.empty:
             continue
+        alpha = 0.35 if node_type == "junction" else 0.95
         ax.scatter(
             group["x"],
             group["y"],
@@ -85,77 +113,90 @@ def plot_network(nodes, edges, amrs, tasks):
             c=style["color"],
             marker=style["marker"],
             edgecolors="white",
-            linewidths=1.5,
-            zorder=3,
+            linewidths=1.2,
+            alpha=alpha,
+            zorder=5,
         )
 
-    for node in nodes.itertuples():
-        ax.text(node.x, node.y + 0.25, node.node_id, fontsize=8, ha="center", va="bottom")
+    important_types = {"inbound", "outbound", "shelf", "sorting", "charger"}
+    for node in nodes.itertuples(index=False):
+        if node.node_type in important_types:
+            ax.text(
+                float(node.x),
+                float(node.y) + 0.24,
+                node.node_id,
+                fontsize=8,
+                ha="center",
+                va="bottom",
+                zorder=6,
+            )
 
-    for idx, amr in enumerate(amrs.itertuples()):
+    for amr in amrs.itertuples(index=False):
         x, y = pos[amr.init_node]
         ax.scatter(
             [x],
-            [y - 0.32],
+            [y - 0.34],
             s=180,
             marker="*",
             c="#111827",
             edgecolors="white",
             linewidths=1.0,
-            zorder=4,
+            zorder=7,
         )
-        ax.text(x, y - 0.65, amr.amr_id, fontsize=8, ha="center", color="#111827")
+        ax.text(x, y - 0.67, amr.amr_id, fontsize=8, ha="center", color="#111827", zorder=8)
 
     pickup_nodes = set(tasks["pickup"])
     delivery_nodes = set(tasks["delivery"])
     for node_id in pickup_nodes:
-        x, y = pos[node_id]
-        ax.scatter([x + 0.18], [y + 0.18], s=60, marker="^", c="#06b6d4", zorder=5)
+        if node_id in pos:
+            x, y = pos[node_id]
+            ax.scatter([x + 0.18], [y + 0.18], s=62, marker="^", c="#06b6d4", zorder=8)
     for node_id in delivery_nodes:
-        x, y = pos[node_id]
-        ax.scatter([x - 0.18], [y - 0.18], s=60, marker="v", c="#ef4444", zorder=5)
+        if node_id in pos:
+            x, y = pos[node_id]
+            ax.scatter([x - 0.18], [y - 0.18], s=62, marker="v", c="#ef4444", zorder=8)
 
-    node_legend = [
-        Line2D([0], [0], marker=style["marker"], color="w", label=node_type,
-               markerfacecolor=style["color"], markeredgecolor="white", markersize=9)
-        for node_type, style in NODE_STYLE.items()
-    ]
-    edge_legend = [
-        Line2D([0], [0], color=style["color"], lw=style["linewidth"],
-               linestyle=style["linestyle"], label=f"{edge_type} edge")
-        for edge_type, style in EDGE_STYLE.items()
-    ]
-    extra_legend = [
-        Line2D([0], [0], marker="*", color="w", label="AMR initial node",
+    legend_items = [
+        Rectangle((0, 0), 1, 1, facecolor="#f4a261", edgecolor="#a65f12", alpha=0.72, label="rack obstacle"),
+        Rectangle((0, 0), 1, 1, facecolor="#f7b7bd", edgecolor="#c1121f", alpha=0.75, label="dynamic blocked area"),
+        Line2D([0], [0], marker="o", color="w", label="task / shelf point",
+               markerfacecolor="#b45309", markeredgecolor="white", markersize=8),
+        Line2D([0], [0], marker="*", color="w", label="AMR initial pose",
                markerfacecolor="#111827", markersize=12),
-        Line2D([0], [0], marker="^", color="w", label="task pickup",
+        Line2D([0], [0], marker="^", color="w", label="pickup point",
                markerfacecolor="#06b6d4", markersize=8),
-        Line2D([0], [0], marker="v", color="w", label="task delivery",
+        Line2D([0], [0], marker="v", color="w", label="delivery point",
                markerfacecolor="#ef4444", markersize=8),
     ]
+    ax.legend(
+        handles=legend_items,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.08),
+        ncol=3,
+        fontsize=8,
+        frameon=False,
+    )
 
-    ax.legend(handles=node_legend + edge_legend + extra_legend, loc="upper center",
-              bbox_to_anchor=(0.5, -0.08), ncol=5, fontsize=8, frameon=False)
-    ax.set_title("Simplified AMR Warehouse Road Network", fontsize=15, pad=16)
+    ax.set_title("Simplified 2D AMR Warehouse Floor Plan", fontsize=15, pad=16)
     ax.set_xlabel("x coordinate")
     ax.set_ylabel("y coordinate")
     ax.set_aspect("equal", adjustable="box")
-    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.35)
-    ax.set_xlim(-1, 13)
-    ax.set_ylim(-1, 6.5)
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.28)
+    ax.set_xlim(-1.0, 13.0)
+    ax.set_ylim(-1.0, 6.8)
     fig.tight_layout()
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / "warehouse_network.png"
+    output_path = OUTPUT_DIR / "warehouse_floor_plan.png"
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
     return output_path
 
 
 def main():
-    nodes, edges, amrs, tasks = load_data()
-    output_path = plot_network(nodes, edges, amrs, tasks)
-    print(f"Saved warehouse network plot to: {output_path}")
+    nodes, amrs, tasks, zones, obstacles = load_data()
+    output_path = plot_floor_plan(nodes, amrs, tasks, zones, obstacles)
+    print(f"Saved 2D warehouse floor plan to: {output_path}")
 
 
 if __name__ == "__main__":

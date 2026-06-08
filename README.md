@@ -1,4 +1,8 @@
-﻿# 多 AMR 仓储调度简易框架
+﻿# 多 AMR 仓储调度简易框架（二维平面图迁移分支）
+
+当前分支：`feature/2d-floor-plan`
+
+建模方向：本分支从原来的“抽象仓库路网图”迁移到“二维仓库平面图 + 障碍物”。项目仍保留 P0-P5 的分工结构，P0 先改为绘制仓库平面图；后续 P1 将基于二维平面、障碍物和任务点生成路径几何、通行时间、路径成本和轨迹占用信息，再继续供 P2-P4 使用。
 
 ## 目录结构
 
@@ -6,9 +10,11 @@
 amr_warehouse_framework/
   data/raw/
     nodes.csv      # 仓库节点：入库区、货架、分拣台、出库区、充电点、路口
-    edges.csv      # 通道数据：长度、通行时间、容量、风险、通道类型
+    edges.csv      # 原路网方案的通道数据，当前分支暂作接口对照保留
     amrs.csv       # AMR 初始位置、电量、速度
     tasks.csv      # 任务取货点、送货点、服务时间、时间窗、优先级
+    floor_zones.csv     # 二维平面图功能区域：入库区、出库区、分拣区、充电区
+    floor_obstacles.csv # 二维平面图障碍物：墙体、货架块、临时封锁区
     dynamic_events.csv # 动态事件：通道封锁、AMR 延误、临时新增任务
   data/processed/
     key_nodes.csv
@@ -46,7 +52,7 @@ amr_warehouse_framework/
     p5_experiment_analysis/
       README.md
   outputs/
-    warehouse_network.png
+    warehouse_floor_plan.png
     cost_matrix_time.png
     cost_matrix_total.png
     paths/
@@ -63,7 +69,7 @@ pip install pandas networkx matplotlib numpy
 
 如果你使用 Anaconda，一般这些库已经装好。
 
-## P0：绘制仓库路网图
+## P0：绘制二维仓库平面图
 
 在项目目录下运行：
 
@@ -74,10 +80,28 @@ python .\src\p0_data_scene\plot_warehouse_network.py
 输出：
 
 ```text
-outputs/warehouse_network.png
+outputs/warehouse_floor_plan.png
 ```
 
-这张图用于报告 6.1 算例场景，展示仓库路网、AMR 初始位置、任务取货点和送货点。
+这张图用于报告 6.1 算例场景，展示仓库二维边界、功能区域、货架/墙体/临时障碍、AMR 初始位置、任务取货点和送货点。
+
+### 二维平面图迁移说明
+
+本分支目前先完成 P0 场景层迁移。P1-P4 的文件夹结构和接口说明暂时保留，方便后续分工继续推进。迁移后的数据链路建议理解为：
+
+```text
+二维平面图 + 障碍物 + AMR/任务点
+        ↓
+P1 生成点到点路径几何、轨迹采样、通行时间、路径成本
+        ↓
+P2 读取路径成本，完成任务分配与任务排序
+        ↓
+P3 读取轨迹占用，生成时间表并检测空间/时间冲突
+        ↓
+P4 基于动态障碍、AMR 延误、新任务进行局部重规划或重排
+```
+
+因此，原路网方案中的 `edge_sequence`、`node_sequence`、`edge_occupancy_offset` 后续可迁移为二维方案中的 `path_geometry`、`trajectory_samples`、`occupied_area_by_time`。P2 仍然主要需要 `travel_time` 和 `total_cost`，P3/P4 则需要更细的轨迹占用信息。
 
 ## P1：候选路径生成
 
@@ -133,7 +157,7 @@ P1 不直接决定最终调度，它是后面调度模型的底层数据供应�
 因此 P1 的接口可以理解为：
 
 ```text
-仓库路网 + AMR 初始点 + 任务点
+仓库场景 + AMR 初始点 + 任务点
         ↓
 关键节点集合 key_nodes.csv
         ↓
@@ -778,7 +802,7 @@ P4 建议放在报告的“通道封锁与动态重排”实验部分。不要�
    - 用红色标记被改变任务
 2. 通道封锁影响图
 
-   - 在仓库路网图上高亮被封锁通道
+   - 在仓库平面图上高亮被封锁区域或受影响路径
    - 标出受影响 AMR 和任务
    - 标注封锁时间窗
 
@@ -816,7 +840,7 @@ python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
 
 运行完后，报告里可以放：
 
-1. `outputs/warehouse_network.png`
+1. `outputs/warehouse_floor_plan.png`
 2. 一张典型候选路径图
 3. `outputs/cost_matrix_total.png`
 4. `data/processed/path_cost.csv` 的前几行作为路径成本表
