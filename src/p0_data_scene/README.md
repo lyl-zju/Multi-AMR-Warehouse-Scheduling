@@ -31,7 +31,7 @@ python .\src\p0_data_scene\plot_warehouse_network.py
 ## 输出
 
 ```text
-outputs/warehouse_floor_plan.png
+outputs/p0/warehouse_floor_plan.png
 ```
 
 ## 报告用途

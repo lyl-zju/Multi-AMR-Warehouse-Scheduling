@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -5,18 +6,64 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
-PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
+P2_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p2"
+PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p3"
+P1_ALGORITHMS = ("basic_astar", "vg", "avg", "davg")
+DEFAULT_P1_ALGORITHM = "basic_astar"
 
 SCHEDULING_METHOD = "baseline_interface_stub"
 CONFLICT_METHOD = "interval_capacity_check_stub"
 NODE_CAPACITY = 1
+EDGE_SCHEDULE_COLUMNS = [
+    "amr_id",
+    "task_id",
+    "sequence_order",
+    "segment_type",
+    "path_uid",
+    "step_index",
+    "edge_id",
+    "from_node_on_edge",
+    "to_node_on_edge",
+    "start_time",
+    "end_time",
+    "duration",
+    "capacity",
+    "edge_type",
+    "lockable",
+]
+NODE_SCHEDULE_COLUMNS = [
+    "amr_id",
+    "task_id",
+    "sequence_order",
+    "segment_type",
+    "path_uid",
+    "node_index",
+    "node_id",
+    "time",
+]
 
 
-def load_inputs():
-    assignment = pd.read_csv(PROCESSED_DATA_DIR / "assignment_result.csv")
-    path_cost = pd.read_csv(PROCESSED_DATA_DIR / "path_cost.csv")
-    path_edge_occupancy = pd.read_csv(PROCESSED_DATA_DIR / "path_edge_occupancy.csv")
-    path_node_occupancy = pd.read_csv(PROCESSED_DATA_DIR / "path_node_occupancy.csv")
+def p1_data_dir(algorithm):
+    return PROJECT_ROOT / "data" / "processed" / "p1" / algorithm
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build schedules and detect conflicts using selected P1 paths.")
+    parser.add_argument(
+        "--p1-algorithm",
+        choices=P1_ALGORITHMS,
+        default=DEFAULT_P1_ALGORITHM,
+        help="P1 path planning method to read.",
+    )
+    return parser.parse_args()
+
+
+def load_inputs(p1_algorithm=DEFAULT_P1_ALGORITHM):
+    p1_dir = p1_data_dir(p1_algorithm)
+    assignment = pd.read_csv(P2_DATA_DIR / "assignment_result.csv")
+    path_cost = pd.read_csv(p1_dir / "path_cost.csv")
+    path_edge_occupancy = pd.read_csv(p1_dir / "path_edge_occupancy.csv")
+    path_node_occupancy = pd.read_csv(p1_dir / "path_node_occupancy.csv")
     edges = pd.read_csv(RAW_DATA_DIR / "edges.csv")
     nodes = pd.read_csv(RAW_DATA_DIR / "nodes.csv")
     return assignment, path_cost, path_edge_occupancy, path_node_occupancy, edges, nodes
@@ -196,8 +243,8 @@ def build_schedule(assignment, edge_occupancy, node_occupancy):
 
     return (
         pd.DataFrame(schedule_rows),
-        pd.DataFrame(edge_schedule_rows),
-        pd.DataFrame(node_schedule_rows),
+        pd.DataFrame(edge_schedule_rows, columns=EDGE_SCHEDULE_COLUMNS),
+        pd.DataFrame(node_schedule_rows, columns=NODE_SCHEDULE_COLUMNS),
     )
 
 
@@ -286,7 +333,8 @@ def build_conflict_log(edge_schedule, node_schedule):
 
 
 def main():
-    assignment, path_cost, path_edge_occupancy, path_node_occupancy, edges, nodes = load_inputs()
+    args = parse_args()
+    assignment, path_cost, path_edge_occupancy, path_node_occupancy, edges, nodes = load_inputs(args.p1_algorithm)
     schedule_result, edge_schedule, node_schedule = build_schedule(
         assignment, path_edge_occupancy, path_node_occupancy
     )
@@ -299,6 +347,7 @@ def main():
     conflict_log.to_csv(PROCESSED_DATA_DIR / "conflict_log.csv", index=False)
 
     print(f"Scheduled task rows: {len(schedule_result)}")
+    print(f"P1 algorithm: {args.p1_algorithm}")
     print(f"Edge occupancy rows: {len(edge_schedule)}")
     print(f"Node occupancy rows: {len(node_schedule)}")
     print(f"Detected conflicts: {len(conflict_log)}")

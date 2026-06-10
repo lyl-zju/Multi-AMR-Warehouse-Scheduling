@@ -7,20 +7,21 @@
 ```text
 data/raw/tasks.csv
 data/raw/amrs.csv
-data/processed/path_cost.csv
+data/processed/p1/<algorithm>/path_cost.csv
 ```
 
 ## 脚本
 
 ```powershell
-python .\src\p2_assignment\assign_and_sequence_tasks.py
+python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm basic_astar
+python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm vg
 ```
 
 ## 输出
 
 ```text
-data/processed/assignment_result.csv
-data/processed/amr_sequence_summary.csv
+data/processed/p2/assignment_result.csv
+data/processed/p2/amr_sequence_summary.csv
 ```
 
 ## 报告用途

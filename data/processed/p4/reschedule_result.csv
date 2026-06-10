@@ -1,0 +1,14 @@
+task_id,old_amr,new_amr,old_start,new_start,old_finish,new_finish,changed,affected_event_ids,change_reason,delay_added,reschedule_status,reschedule_method,sequence_order,pickup,delivery,path_uid,transition_path_uid,loaded_path_uid,notes
+T05,AMR1,AMR1,9.94,9.94,16.703,16.703,0,,,0.0,scheduled,rolling_horizon_interface_stub,1,P6,OUT2,P6__OUT2__path_1,IN1__P6__path_1,P6__OUT2__path_1,
+T06,AMR1,AMR1,25.534,25.534,34.562,34.562,0,,,0.0,scheduled,rolling_horizon_interface_stub,2,P2,SORT1,P2__SORT1__path_1,OUT2__P2__path_1,P2__SORT1__path_1,
+T11,AMR1,AMR1,42.373,42.373,53.739,53.739,0,,,0.0,scheduled,rolling_horizon_interface_stub,3,P3,OUT2,P3__OUT2__path_1,SORT1__P3__path_1,P3__OUT2__path_1,
+T02,AMR2,AMR2,3.824,3.824,13.448,13.448,0,,,0.0,scheduled,rolling_horizon_interface_stub,1,P3,SORT2,P3__SORT2__path_1,IN2__P3__path_1,P3__SORT2__path_1,
+T08,AMR2,AMR2,18.431,24.431,25.414,31.414,1,E02,amr_delay:AMR2,6.0,scheduled,rolling_horizon_interface_stub,2,P9,SORT2,P9__SORT2__path_1,SORT2__P9__path_1,P9__SORT2__path_1,
+T10,AMR2,AMR2,30.114,36.114000000000004,40.384,46.384,1,E02,amr_delay:AMR2,6.0,scheduled,rolling_horizon_interface_stub,3,P5,OUT1,P5__OUT1__path_1,SORT2__P5__path_1,P5__OUT1__path_1,
+T01,AMR3,AMR3,2.473,2.473,12.511,12.511,0,,,0.0,scheduled,rolling_horizon_interface_stub,1,P1,SORT1,P1__SORT1__path_1,CHG1__P1__path_1,P1__SORT1__path_1,
+T09,AMR3,AMR3,18.849,18.849,27.187,27.187,0,,,0.0,scheduled,rolling_horizon_interface_stub,2,P4,SORT1,P4__SORT1__path_1,SORT1__P4__path_1,P4__SORT1__path_1,
+T03,AMR4,AMR4,6.404,6.404,14.291,14.291,0,,,0.0,scheduled,rolling_horizon_interface_stub,1,P5,SORT1,P5__SORT1__path_1,CHG2__P5__path_1,P5__SORT1__path_1,
+T04,AMR4,AMR4,15.374,15.374,19.737,19.737,0,,,0.0,scheduled,rolling_horizon_interface_stub,2,P8,SORT2,P8__SORT2__path_1,SORT1__P8__path_1,P8__SORT2__path_1,
+T07,AMR4,AMR4,25.483000000000004,25.483000000000004,34.063,34.063,0,,,0.0,scheduled,rolling_horizon_interface_stub,3,P7,OUT1,P7__OUT1__path_1,SORT2__P7__path_1,P7__OUT1__path_1,
+T12,AMR4,AMR4,37.529,37.529,42.995000000000005,42.995000000000005,0,,,0.0,scheduled,rolling_horizon_interface_stub,4,P8,OUT1,P8__OUT1__path_1,OUT1__P8__path_1,P8__OUT1__path_1,
+T13,,AMR3,,27.187,,29.187,1,E03,new_task_insert_stub,0.0,new_task_inserted_stub,rolling_horizon_interface_stub,3,P4,SORT2,,,,new dynamic task inserted with placeholder logic

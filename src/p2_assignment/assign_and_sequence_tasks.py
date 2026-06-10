@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -5,15 +6,32 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
-PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
+PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p2"
+P1_ALGORITHMS = ("basic_astar", "vg", "avg", "davg")
+DEFAULT_P1_ALGORITHM = "basic_astar"
 
 ASSIGNMENT_METHOD = "baseline_interface_stub"
 
 
-def load_inputs():
+def p1_data_dir(algorithm):
+    return PROJECT_ROOT / "data" / "processed" / "p1" / algorithm
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Assign and sequence tasks using selected P1 path costs.")
+    parser.add_argument(
+        "--p1-algorithm",
+        choices=P1_ALGORITHMS,
+        default=DEFAULT_P1_ALGORITHM,
+        help="P1 path planning method to read.",
+    )
+    return parser.parse_args()
+
+
+def load_inputs(p1_algorithm=DEFAULT_P1_ALGORITHM):
     tasks = pd.read_csv(RAW_DATA_DIR / "tasks.csv")
     amrs = pd.read_csv(RAW_DATA_DIR / "amrs.csv")
-    path_cost = pd.read_csv(PROCESSED_DATA_DIR / "path_cost.csv")
+    path_cost = pd.read_csv(p1_data_dir(p1_algorithm) / "path_cost.csv")
     return tasks, amrs, path_cost
 
 
@@ -214,7 +232,8 @@ def build_sequence_summary(assignment_result):
 
 
 def main():
-    tasks, amrs, path_cost = load_inputs()
+    args = parse_args()
+    tasks, amrs, path_cost = load_inputs(args.p1_algorithm)
     path_lookup = build_best_path_lookup(path_cost)
     assignment_seed = choose_assignments(tasks, amrs, path_lookup)
     assignment_result = build_assignment_result(tasks, amrs, assignment_seed, path_lookup)
@@ -225,6 +244,7 @@ def main():
     sequence_summary.to_csv(PROCESSED_DATA_DIR / "amr_sequence_summary.csv", index=False)
 
     print(f"Tasks assigned: {len(assignment_result)}")
+    print(f"P1 algorithm: {args.p1_algorithm}")
     print(f"AMRs used: {assignment_result['amr_id'].nunique()}")
     print(f"Missing transitions: {(assignment_result['transition_status'] != 'ok').sum()}")
     print(f"Missing loaded paths: {(assignment_result['loaded_path_status'] != 'ok').sum()}")

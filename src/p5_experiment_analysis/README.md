@@ -5,19 +5,19 @@
 ## 建议输入
 
 ```text
-data/processed/path_cost.csv
-data/processed/assignment_result.csv
-data/processed/schedule_result.csv
-data/processed/conflict_log.csv
-data/processed/reschedule_result.csv
-data/processed/reschedule_summary.csv
+data/processed/p1/basic_astar/path_cost.csv
+data/processed/p2/assignment_result.csv
+data/processed/p3/schedule_result.csv
+data/processed/p3/conflict_log.csv
+data/processed/p4/reschedule_result.csv
+data/processed/p4/reschedule_summary.csv
 ```
 
 ## 建议输出
 
 ```text
-data/processed/experiment_metrics.csv
-outputs/p5_*.png
+data/processed/p5/experiment_metrics.csv
+outputs/p5/p5_*.png
 ```
 
 ## 后续可加入的程序

@@ -8,7 +8,7 @@ from matplotlib.patches import Rectangle
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "raw"
-OUTPUT_DIR = PROJECT_ROOT / "outputs"
+OUTPUT_DIR = PROJECT_ROOT / "outputs" / "p0"
 
 
 ZONE_STYLE = {

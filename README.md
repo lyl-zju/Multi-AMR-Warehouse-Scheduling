@@ -17,21 +17,35 @@ amr_warehouse_framework/
     floor_obstacles.csv # 二维平面图障碍物：墙体、货架块、临时封锁区
     dynamic_events.csv # 动态事件：通道封锁、AMR 延误、临时新增任务
   data/processed/
-    key_nodes.csv
-    path_cost.csv
-    path_edge_occupancy.csv
-    path_node_occupancy.csv
-    path_cost_matrix_time.csv
-    path_cost_matrix_total.csv
-    assignment_result.csv
-    amr_sequence_summary.csv
-    schedule_result.csv
-    edge_occupancy_schedule.csv
-    node_occupancy_schedule.csv
-    conflict_log.csv
-    reschedule_result.csv
-    dynamic_event_impact.csv
-    reschedule_summary.csv
+    p1/
+      basic_astar/
+        key_nodes.csv
+        path_cost.csv
+        path_grid_cells.csv
+        path_trajectory_samples.csv
+        path_cost_matrix_time.csv
+        path_cost_matrix_total.csv
+      vg/
+        key_nodes.csv
+        path_cost.csv
+        path_grid_cells.csv
+        path_trajectory_samples.csv
+        path_cost_matrix_time.csv
+        path_cost_matrix_total.csv
+      avg/
+      davg/
+    p2/
+      assignment_result.csv
+      amr_sequence_summary.csv
+    p3/
+      schedule_result.csv
+      edge_occupancy_schedule.csv
+      node_occupancy_schedule.csv
+      conflict_log.csv
+    p4/
+      reschedule_result.csv
+      dynamic_event_impact.csv
+      reschedule_summary.csv
   src/
     p0_data_scene/
       plot_warehouse_network.py
@@ -39,6 +53,14 @@ amr_warehouse_framework/
     p1_candidate_paths/
       generate_candidate_paths.py
       plot_candidate_paths.py
+      path_interface.py
+      animate_davg_replanning.py
+      planners/
+        common.py
+        basic_astar.py
+        vg.py
+        avg.py
+        davg.py
       README.md
     p2_assignment/
       assign_and_sequence_tasks.py
@@ -52,11 +74,24 @@ amr_warehouse_framework/
     p5_experiment_analysis/
       README.md
   outputs/
-    warehouse_floor_plan.png
-    cost_matrix_time.png
-    cost_matrix_total.png
-    paths/
-      candidate_paths_*.png
+    p0/
+      warehouse_floor_plan.png
+    p1/
+      basic_astar/
+        cost_matrix_time.png
+        cost_matrix_total.png
+        paths/
+          candidate_paths_*.png
+      vg/
+        cost_matrix_time.png
+        cost_matrix_total.png
+        paths/
+          candidate_paths_*.png
+      avg/
+      davg/
+    p2/
+    p3/
+    p4/
 ```
 
 ## 环境依赖
@@ -80,7 +115,7 @@ python .\src\p0_data_scene\plot_warehouse_network.py
 输出：
 
 ```text
-outputs/warehouse_floor_plan.png
+outputs/p0/warehouse_floor_plan.png
 ```
 
 这张图用于报告 6.1 算例场景，展示仓库二维边界、功能区域、货架/墙体/临时障碍、AMR 初始位置、任务取货点和送货点。
@@ -108,15 +143,20 @@ P4 基于动态障碍、AMR 延误、新任务进行局部重规划或重排
 运行：
 
 ```powershell
-python .\src\p1_candidate_paths\generate_candidate_paths.py
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm basic_astar
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm vg
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm avg
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm davg
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm vg --from-node IN1 --to-node P5
 ```
 
 该脚本会读取：
 
 - `data/raw/nodes.csv`
-- `data/raw/edges.csv`
 - `data/raw/amrs.csv`
 - `data/raw/tasks.csv`
+- `data/raw/floor_obstacles.csv`
+- `data/raw/floor_zones.csv`
 
 然后自动生成关键节点集合：
 
@@ -128,15 +168,22 @@ python .\src\p1_candidate_paths\generate_candidate_paths.py
 输出：
 
 ```text
-data/processed/key_nodes.csv
-data/processed/path_cost.csv
-data/processed/path_edge_occupancy.csv
-data/processed/path_node_occupancy.csv
-data/processed/path_cost_matrix_time.csv
-data/processed/path_cost_matrix_total.csv
+data/processed/p1/basic_astar/key_nodes.csv
+data/processed/p1/basic_astar/path_cost.csv
+data/processed/p1/basic_astar/path_grid_cells.csv
+data/processed/p1/basic_astar/path_trajectory_samples.csv
+data/processed/p1/basic_astar/path_edge_occupancy.csv
+data/processed/p1/basic_astar/path_node_occupancy.csv
+data/processed/p1/basic_astar/path_cost_matrix_time.csv
+data/processed/p1/basic_astar/path_cost_matrix_total.csv
+data/processed/p1/vg/...
+data/processed/p1/avg/...
+data/processed/p1/davg/...
 ```
 
-其中 `path_cost.csv` 是 P1 的核心输出，后续 P2 任务分配模块可以直接使用。`path_edge_occupancy.csv` 是给 P3/P4 做通道冲突检测和动态重排用的结构化通道占用明细，`path_node_occupancy.csv` 是给 P3 做路口占用检测用的节点到达明细。
+其中 `path_cost.csv` 是 P1 的核心输出，后续 P2 任务分配模块可以通过 `--p1-algorithm` 指定读取哪种算法结果。当前实现了 `basic_astar`、普通 `vg`、`avg` 和 `davg`。
+
+不指定 `--from-node` / `--to-node` 时，P1 会生成所有关键节点两两路径；同时指定二者时只生成这一对路径，适合调试和单路径可视化。单对模式会覆盖对应算法目录下的 P1 输出，跑 P2/P3 前请重新运行完整生成命令。
 
 ### P1 与后续模块的数据链路
 
@@ -218,52 +265,78 @@ IN1@0;J1@2;J2@4;P2@6
 
 ### 路径生成逻辑
 
-对任意两个关键节点，脚本会生成若干候选路径：
+当前 P1 支持以下算法目录：
 
-1. `dijkstra_time`：按通行时间最短生成路径
-2. `dijkstra_total`：按综合成本最小生成路径
-3. `k_shortest_total`：按综合成本生成前 3 条简单路径
+| 算法参数 | 含义 | 状态 |
+| --- | --- | --- |
+| `basic_astar` | 基础 8 邻域 Grid A* | 已实现 |
+| `vg` | 普通 Visibility Graph，可见图最短路 | 已实现 |
+| `avg` | Augmented Visibility Graph，在可见图搜索中加入转向状态和转角代价 | 已实现 |
+| `davg` | Dynamic Augmented Visibility Graph，加入活动区域筛选和动态区域代价 | 已实现 |
 
-重复路径会自动合并，最终每组起终点最多保留若干条不同候选路径。
+`basic_astar` 版本对任意两个关键节点生成 1 条基础 Grid A* 路径：
+
+1. 将二维仓库平面按 `GRID_RESOLUTION` 离散为栅格；
+2. 将 `rack`、`wall`、`dynamic_block` 按 `OBSTACLE_INFLATION` 膨胀后作为不可通行障碍；
+3. 使用 8 邻域 A*，搜索代价只包含栅格移动距离；
+4. 输出折线路径 `path_geometry`、原始栅格序列 `path_grid_cells.csv` 和轨迹采样 `path_trajectory_samples.csv`。
+
+`vg` 版本会基于膨胀后的矩形障碍物角点构造可见图，若两点之间的线段不穿过任何障碍物内部，则连边，边权为欧氏距离。之后在可见图上用 A* 搜索最短路径。
+
+`avg` 版本沿用 VG 的可见图，但搜索状态从“当前点”扩展为“上一点 + 当前点”。当路径从 `(previous, current)` 转向 `next` 时，会按转角弧度加入转向代价，因此它倾向于选择更平滑、转向更少的路径。
+
+`davg` 版本在 AVG 基础上加入动态区域逻辑：建图时优先使用起终点走廊附近的障碍角点，并始终保留 `dynamic_block` 的角点；搜索时对靠近动态区域的可见边加入 `dynamic_cost`，因此会倾向于选择离临时封锁区更远的路径。若活动区域图找不到路，会自动退回完整可见图。
 
 ### 综合成本定义
 
-当前综合成本为：
+`basic_astar` 和 `vg` 的综合成本为：
 
 ```text
-total_cost = travel_time
-           + risk
-           + narrow_edge_penalty
-           + dynamic_edge_penalty
-           + lockable_edge_penalty
-           + turn_cost
+travel_time = distance / DEFAULT_AMR_SPEED
+total_cost = distance
 ```
 
-其中：
+`avg` 的综合成本为：
 
-- 窄通道会增加惩罚
-- 动态通道会增加惩罚
-- 可封锁通道会增加惩罚
-- 每次转弯增加 `0.5` 的转弯成本
+```text
+travel_time = distance / DEFAULT_AMR_SPEED
+turn_cost = TURN_COST_PER_RADIAN * sum(turn_angles)
+total_cost = distance + turn_cost
+```
 
-这些权重可以在 `src/p1_candidate_paths/generate_candidate_paths.py` 顶部修改。
+`davg` 的综合成本为：
+
+```text
+travel_time = distance / DEFAULT_AMR_SPEED
+dynamic_cost = dynamic exposure around dynamic_block
+total_cost = distance + turn_cost + dynamic_cost
+```
+
+基础 Grid A* 仍作为最纯的 baseline，不加入转弯代价、风险代价或动态区域惩罚。`turn_count` 只作为观察字段保留，`turn_cost = 0`。
 
 ## P1：候选路径可视化
 
 先运行候选路径生成脚本，再运行：
 
 ```powershell
-python .\src\p1_candidate_paths\plot_candidate_paths.py
+python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm basic_astar
+python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm vg
+python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm avg
+python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm davg
+python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm vg --from-node IN1 --to-node P5
+python .\src\p1_candidate_paths\animate_davg_replanning.py
 ```
 
 输出：
 
 ```text
-outputs/paths/candidate_paths_IN1_P5.png
-outputs/paths/candidate_paths_P5_SORT1.png
-outputs/paths/candidate_paths_P8_OUT2.png
-outputs/cost_matrix_time.png
-outputs/cost_matrix_total.png
+outputs/p1/basic_astar/paths/candidate_paths_IN1_P5.png
+outputs/p1/basic_astar/paths/candidate_paths_P5_SORT1.png
+outputs/p1/basic_astar/paths/candidate_paths_P8_OUT2.png
+outputs/p1/basic_astar/cost_matrix_time.png
+outputs/p1/basic_astar/cost_matrix_total.png
+outputs/p1/davg/replanning/davg_replanning_IN1_OUT2.gif
+outputs/p1/davg/replanning/davg_replanning_IN1_OUT2.events.csv
 ```
 
 这些图可以用于报告 6.2 路径模块对比：
@@ -271,6 +344,7 @@ outputs/cost_matrix_total.png
 - 候选路径图：展示同一起终点的 2-3 条备选路线
 - 通行时间矩阵：展示关键节点之间的最短通行时间
 - 综合成本矩阵：展示考虑风险、窄通道、动态通道和转弯后的路径成本
+- DAVG 重规划动图：展示 AMR 运动过程中随机动态障碍出现/过期，以及 DAVG 实时重规划后的当前路径
 
 矩阵热力图中的灰色空格表示当前路网设定下不可达。例如 `OUT1` 和 `OUT2` 目前是单向出库终点，所以从出库点返回其他节点没有路径。如果后续 P2 需要 AMR 完成出库任务后继续执行下一单，可以在 `edges.csv` 中增加出库区返回主路网的通道。
 
@@ -286,13 +360,13 @@ P2 回答两个问题：
 运行前需要先运行 P1：
 
 ```powershell
-python .\src\p1_candidate_paths\generate_candidate_paths.py
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm basic_astar
 ```
 
 然后运行 P2：
 
 ```powershell
-python .\src\p2_assignment\assign_and_sequence_tasks.py
+python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm basic_astar
 ```
 
 P2 输入：
@@ -300,14 +374,14 @@ P2 输入：
 ```text
 data/raw/tasks.csv
 data/raw/amrs.csv
-data/processed/path_cost.csv
+data/processed/p1/basic_astar/path_cost.csv
 ```
 
 P2 输出：
 
 ```text
-data/processed/assignment_result.csv
-data/processed/amr_sequence_summary.csv
+data/processed/p2/assignment_result.csv
+data/processed/p2/amr_sequence_summary.csv
 ```
 
 ### assignment_result.csv
@@ -372,23 +446,23 @@ P3 回答五个问题：
 运行前需要先运行 P1 和 P2：
 
 ```powershell
-python .\src\p1_candidate_paths\generate_candidate_paths.py
-python .\src\p2_assignment\assign_and_sequence_tasks.py
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm basic_astar
+python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm basic_astar
 ```
 
 然后运行 P3：
 
 ```powershell
-python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py
+python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm basic_astar
 ```
 
 P3 输入：
 
 ```text
-data/processed/assignment_result.csv
-data/processed/path_cost.csv
-data/processed/path_edge_occupancy.csv
-data/processed/path_node_occupancy.csv
+data/processed/p2/assignment_result.csv
+data/processed/p1/basic_astar/path_cost.csv
+data/processed/p1/basic_astar/path_edge_occupancy.csv
+data/processed/p1/basic_astar/path_node_occupancy.csv
 data/raw/edges.csv
 data/raw/nodes.csv
 ```
@@ -396,10 +470,10 @@ data/raw/nodes.csv
 P3 输出：
 
 ```text
-data/processed/schedule_result.csv
-data/processed/edge_occupancy_schedule.csv
-data/processed/node_occupancy_schedule.csv
-data/processed/conflict_log.csv
+data/processed/p3/schedule_result.csv
+data/processed/p3/edge_occupancy_schedule.csv
+data/processed/p3/node_occupancy_schedule.csv
+data/processed/p3/conflict_log.csv
 ```
 
 ### schedule_result.csv
@@ -640,9 +714,9 @@ data/raw/dynamic_events.csv
 运行前需要先运行 P1、P2、P3：
 
 ```powershell
-python .\src\p1_candidate_paths\generate_candidate_paths.py
-python .\src\p2_assignment\assign_and_sequence_tasks.py
-python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm basic_astar
+python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm basic_astar
+python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm basic_astar
 ```
 
 然后运行 P4：
@@ -654,17 +728,17 @@ python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
 P4 输入：
 
 ```text
-data/processed/schedule_result.csv
-data/processed/edge_occupancy_schedule.csv
+data/processed/p3/schedule_result.csv
+data/processed/p3/edge_occupancy_schedule.csv
 data/raw/dynamic_events.csv
 ```
 
 P4 输出：
 
 ```text
-data/processed/reschedule_result.csv
-data/processed/dynamic_event_impact.csv
-data/processed/reschedule_summary.csv
+data/processed/p4/reschedule_result.csv
+data/processed/p4/dynamic_event_impact.csv
+data/processed/p4/reschedule_summary.csv
 ```
 
 ### reschedule_result.csv
@@ -831,33 +905,33 @@ P4 在报告中的逻辑可以写成：
 ```powershell
 cd E:\learning\大二春夏\运筹学\大作业\amr_warehouse_framework
 python .\src\p0_data_scene\plot_warehouse_network.py
-python .\src\p1_candidate_paths\generate_candidate_paths.py
-python .\src\p1_candidate_paths\plot_candidate_paths.py
-python .\src\p2_assignment\assign_and_sequence_tasks.py
-python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm basic_astar
+python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm basic_astar
+python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm basic_astar
+python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm basic_astar
 python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
 ```
 
 运行完后，报告里可以放：
 
-1. `outputs/warehouse_floor_plan.png`
+1. `outputs/p0/warehouse_floor_plan.png`
 2. 一张典型候选路径图
-3. `outputs/cost_matrix_total.png`
-4. `data/processed/path_cost.csv` 的前几行作为路径成本表
-5. `data/processed/assignment_result.csv` 的前几行作为任务分配与排序结果表
-6. `data/processed/schedule_result.csv` 的前几行作为时间调度结果表
-7. `data/processed/conflict_log.csv` 作为冲突检测结果表
-8. `data/processed/reschedule_result.csv` 作为动态重排结果表
-9. `data/processed/dynamic_event_impact.csv` 作为动态事件影响识别表
+3. `outputs/p1/basic_astar/cost_matrix_total.png`
+4. `data/processed/p1/basic_astar/path_cost.csv` 的前几行作为路径成本表
+5. `data/processed/p2/assignment_result.csv` 的前几行作为任务分配与排序结果表
+6. `data/processed/p3/schedule_result.csv` 的前几行作为时间调度结果表
+7. `data/processed/p3/conflict_log.csv` 作为冲突检测结果表
+8. `data/processed/p4/reschedule_result.csv` 作为动态重排结果表
+9. `data/processed/p4/dynamic_event_impact.csv` 作为动态事件影响识别表
 
 ## 后续接 P2/P3 的方式
 
 P2 任务分配模块不需要重新算路径，只需要读取：
 
 ```text
-data/processed/path_cost.csv
-data/processed/path_cost_matrix_time.csv
-data/processed/path_cost_matrix_total.csv
+data/processed/p1/basic_astar/path_cost.csv
+data/processed/p1/basic_astar/path_cost_matrix_time.csv
+data/processed/p1/basic_astar/path_cost_matrix_total.csv
 ```
 
 例如：
@@ -869,10 +943,10 @@ data/processed/path_cost_matrix_total.csv
 P3 时间调度模块可以读取：
 
 ```text
-data/processed/assignment_result.csv
-data/processed/path_cost.csv
-data/processed/path_edge_occupancy.csv
-data/processed/path_node_occupancy.csv
+data/processed/p2/assignment_result.csv
+data/processed/p1/basic_astar/path_cost.csv
+data/processed/p1/basic_astar/path_edge_occupancy.csv
+data/processed/p1/basic_astar/path_node_occupancy.csv
 ```
 
 这样 P3 可以从 `assignment_result.csv` 得到任务顺序，从 `path_edge_occupancy.csv` 和 `path_node_occupancy.csv` 推算通道和路口占用。

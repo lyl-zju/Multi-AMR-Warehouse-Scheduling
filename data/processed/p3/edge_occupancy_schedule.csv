@@ -1,0 +1,1 @@
+amr_id,task_id,sequence_order,segment_type,path_uid,step_index,edge_id,from_node_on_edge,to_node_on_edge,start_time,end_time,duration,capacity,edge_type,lockable

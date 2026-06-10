@@ -1,0 +1,9 @@
+metric,value,description
+OriginalScheduledTasks,12.0,Number of tasks with a valid pre-event schedule
+DynamicEvents,3.0,Number of dynamic events loaded from dynamic_events.csv
+AffectedEvents,2.0,Number of dynamic events that affected at least one task
+ChangedTasks,3.0,Number of tasks changed or inserted by the placeholder rescheduler
+NewTasks,1.0,Number of new tasks inserted after dynamic events
+OriginalCmax,53.739,Maximum original finish time
+NewCmax,53.739,Maximum finish time after placeholder rescheduling
+TotalAddedDelay,12.0,Total time shift added by dynamic event handling

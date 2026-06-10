@@ -1,0 +1,3 @@
+time,event,position_x,position_y,active_dynamic_obstacles,replan_count,total_cost,dynamic_cost
+0.0,Replan 1: active-region DAVG,0.0,1.0,0,1,6.47,0.0
+3.0,Added SIM_DYN_01 and replanned,2.579,2.533,1,2,10.102,4.983

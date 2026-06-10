@@ -5,10 +5,10 @@
 ## 输入
 
 ```text
-data/processed/assignment_result.csv
-data/processed/path_cost.csv
-data/processed/path_edge_occupancy.csv
-data/processed/path_node_occupancy.csv
+data/processed/p2/assignment_result.csv
+data/processed/p1/<algorithm>/path_cost.csv
+data/processed/p1/<algorithm>/path_edge_occupancy.csv
+data/processed/p1/<algorithm>/path_node_occupancy.csv
 data/raw/edges.csv
 data/raw/nodes.csv
 ```
@@ -16,16 +16,17 @@ data/raw/nodes.csv
 ## 脚本
 
 ```powershell
-python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py
+python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm basic_astar
+python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm vg
 ```
 
 ## 输出
 
 ```text
-data/processed/schedule_result.csv
-data/processed/edge_occupancy_schedule.csv
-data/processed/node_occupancy_schedule.csv
-data/processed/conflict_log.csv
+data/processed/p3/schedule_result.csv
+data/processed/p3/edge_occupancy_schedule.csv
+data/processed/p3/node_occupancy_schedule.csv
+data/processed/p3/conflict_log.csv
 ```
 
 ## 报告用途

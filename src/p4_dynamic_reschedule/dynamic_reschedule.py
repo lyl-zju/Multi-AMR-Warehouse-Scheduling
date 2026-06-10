@@ -6,15 +6,16 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
-PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed"
+P3_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p3"
+PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p4"
 
 RESCHEDULE_METHOD = "rolling_horizon_interface_stub"
 CHANGE_THRESHOLD = 1e-9
 
 
 def load_inputs():
-    schedule = pd.read_csv(PROCESSED_DATA_DIR / "schedule_result.csv")
-    edge_schedule = pd.read_csv(PROCESSED_DATA_DIR / "edge_occupancy_schedule.csv")
+    schedule = pd.read_csv(P3_DATA_DIR / "schedule_result.csv")
+    edge_schedule = pd.read_csv(P3_DATA_DIR / "edge_occupancy_schedule.csv")
     dynamic_events = pd.read_csv(RAW_DATA_DIR / "dynamic_events.csv")
     return schedule, edge_schedule, dynamic_events
 
