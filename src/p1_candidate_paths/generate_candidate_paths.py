@@ -62,8 +62,6 @@ def main():
     # - path_cost.csv: one best path per ordered endpoint pair for this algorithm.
     # - path_grid_cells.csv: Grid A* cells or VG waypoints used by each path.
     # - path_trajectory_samples.csv: time-stamped 2D trajectory samples for P3/P4 migration.
-    # - path_edge_occupancy.csv: empty legacy placeholder because 2D planners have no edge graph.
-    # - path_node_occupancy.csv: legacy start/end node arrival offsets.
     # - path_cost_matrix_time.csv: best travel-time matrix for P2.
     # - path_cost_matrix_total.csv: best total-cost matrix for P2.
     path_cost = save_outputs(processed_data_dir, key_nodes, outputs)
@@ -80,8 +78,6 @@ def main():
     print(f"Saved: {processed_data_dir / 'path_cost.csv'}")
     print(f"Saved: {processed_data_dir / 'path_grid_cells.csv'}")
     print(f"Saved: {processed_data_dir / 'path_trajectory_samples.csv'}")
-    print(f"Saved: {processed_data_dir / 'path_edge_occupancy.csv'}")
-    print(f"Saved: {processed_data_dir / 'path_node_occupancy.csv'}")
     print(f"Saved: {processed_data_dir / 'path_cost_matrix_time.csv'}")
     print(f"Saved: {processed_data_dir / 'path_cost_matrix_total.csv'}")
 

@@ -27,10 +27,6 @@ PATH_COLUMNS = [
     "path_id",
     "rank_by_total",
     "algorithm",
-    "node_sequence",
-    "edge_sequence",
-    "edge_occupancy_offset",
-    "node_occupancy_offset",
     "path_geometry",
     "grid_cell_sequence",
     "trajectory_sample_count",
@@ -69,31 +65,6 @@ TRAJECTORY_COLUMNS = [
     "theta",
     "speed",
     "footprint_radius",
-]
-EDGE_OCCUPANCY_COLUMNS = [
-    "path_uid",
-    "from_node",
-    "to_node",
-    "path_id",
-    "step_index",
-    "edge_id",
-    "from_node_on_edge",
-    "to_node_on_edge",
-    "offset_start",
-    "offset_end",
-    "travel_time",
-    "capacity",
-    "edge_type",
-    "lockable",
-]
-NODE_OCCUPANCY_COLUMNS = [
-    "path_uid",
-    "from_node",
-    "to_node",
-    "path_id",
-    "node_index",
-    "node_id",
-    "offset_time",
 ]
 
 
@@ -280,10 +251,6 @@ def sample_trajectory(points, speed=DEFAULT_AMR_SPEED):
     return samples
 
 
-def empty_edge_occupancy():
-    return pd.DataFrame(columns=EDGE_OCCUPANCY_COLUMNS)
-
-
 def build_cost_matrix(path_cost, key_nodes, value_column):
     node_ids = key_nodes["node_id"].tolist()
     best_paths = (
@@ -304,8 +271,6 @@ def save_outputs(processed_data_dir, key_nodes, outputs):
         path_cost,
         path_grid_cells,
         path_trajectory_samples,
-        path_edge_occupancy,
-        path_node_occupancy,
     ) = outputs
 
     processed_data_dir.mkdir(parents=True, exist_ok=True)
@@ -313,8 +278,6 @@ def save_outputs(processed_data_dir, key_nodes, outputs):
     path_cost.to_csv(processed_data_dir / "path_cost.csv", index=False)
     path_grid_cells.to_csv(processed_data_dir / "path_grid_cells.csv", index=False)
     path_trajectory_samples.to_csv(processed_data_dir / "path_trajectory_samples.csv", index=False)
-    path_edge_occupancy.to_csv(processed_data_dir / "path_edge_occupancy.csv", index=False)
-    path_node_occupancy.to_csv(processed_data_dir / "path_node_occupancy.csv", index=False)
 
     matrix_time = build_cost_matrix(path_cost, key_nodes, "travel_time")
     matrix_total = build_cost_matrix(path_cost, key_nodes, "total_cost")

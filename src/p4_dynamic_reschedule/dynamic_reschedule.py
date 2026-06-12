@@ -1,3 +1,4 @@
+from math import hypot
 from pathlib import Path
 import warnings
 
@@ -9,15 +10,15 @@ RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 P3_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p3"
 PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p4"
 
-RESCHEDULE_METHOD = "rolling_horizon_interface_stub"
+RESCHEDULE_METHOD = "rolling_horizon_2d_interface_stub"
 CHANGE_THRESHOLD = 1e-9
 
 
 def load_inputs():
     schedule = pd.read_csv(P3_DATA_DIR / "schedule_result.csv")
-    edge_schedule = pd.read_csv(P3_DATA_DIR / "edge_occupancy_schedule.csv")
+    trajectory_schedule = pd.read_csv(P3_DATA_DIR / "trajectory_schedule.csv")
     dynamic_events = pd.read_csv(RAW_DATA_DIR / "dynamic_events.csv")
-    return schedule, edge_schedule, dynamic_events
+    return schedule, trajectory_schedule, dynamic_events
 
 
 def to_float(value, default=None):
@@ -30,6 +31,12 @@ def overlaps(start_a, end_a, start_b, end_b):
     if start_a is None or end_a is None or start_b is None or end_b is None:
         return False
     return start_a < end_b and end_a > start_b
+
+
+def point_to_rect_distance(x, y, rect_x, rect_y, width, height):
+    dx = max(rect_x - x, 0.0, x - (rect_x + width))
+    dy = max(rect_y - y, 0.0, y - (rect_y + height))
+    return hypot(dx, dy)
 
 
 def append_unique_text(old_text, new_text):
@@ -106,36 +113,57 @@ def impact_row(event, affected, impact_reason):
     }
 
 
-def process_edge_block(table, edge_schedule, event):
+def process_area_block(table, trajectory_schedule, event):
     event_start = to_float(event.start_time)
     event_end = to_float(event.end_time)
-    affected = edge_schedule[
-        (edge_schedule["edge_id"] == event.target_id)
-        & edge_schedule.apply(
-            lambda row: overlaps(
-                to_float(row["start_time"]),
-                to_float(row["end_time"]),
-                event_start,
-                event_end,
-            ),
+    rect_x = to_float(event.x)
+    rect_y = to_float(event.y)
+    width = to_float(event.width)
+    height = to_float(event.height)
+
+    if None in [event_start, event_end, rect_x, rect_y, width, height]:
+        empty = pd.DataFrame(columns=["task_id", "amr_id"])
+        return table, impact_row(event, empty, "area block missing geometry or time window")
+
+    window = trajectory_schedule[
+        trajectory_schedule["absolute_time"].apply(
+            lambda value: overlaps(to_float(value), to_float(value), event_start, event_end)
+            or event_start <= to_float(value, event_start - 1.0) <= event_end
+        )
+    ].copy()
+
+    if window.empty:
+        return table, impact_row(event, window, "no trajectory samples in area block time window")
+
+    affected = window[
+        window.apply(
+            lambda row: point_to_rect_distance(
+                to_float(row["x"]),
+                to_float(row["y"]),
+                rect_x,
+                rect_y,
+                width,
+                height,
+            )
+            <= to_float(row["footprint_radius"], 0.0),
             axis=1,
         )
     ].copy()
 
     if affected.empty:
-        return table, impact_row(event, affected, "no scheduled occupancy overlaps blocked edge")
+        return table, impact_row(event, affected, "no trajectory footprint intersects blocked area")
 
     grouped = (
         affected.groupby(["amr_id", "task_id", "sequence_order"], as_index=False)
-        .agg({"start_time": "min"})
+        .agg({"absolute_time": "min"})
         .sort_values(["amr_id", "sequence_order"])
     )
     for row in grouped.itertuples(index=False):
-        delay = max(0.0, event_end - float(row.start_time))
-        reason = f"edge_block:{event.target_id}"
+        delay = max(0.0, event_end - float(row.absolute_time))
+        reason = f"area_block:{event.target_id}"
         table = mark_and_shift_tasks(table, event.event_id, row.amr_id, float(row.sequence_order), delay, reason)
 
-    return table, impact_row(event, affected, f"edge {event.target_id} occupied during block window")
+    return table, impact_row(event, affected, f"blocked area {event.target_id} intersects trajectory samples")
 
 
 def process_amr_delay(table, event):
@@ -219,19 +247,17 @@ def add_new_task(table, event):
         warnings.simplefilter("ignore", FutureWarning)
         table.loc[len(table)] = new_row
 
-    affected = pd.DataFrame(
-        [{"task_id": event.target_id, "amr_id": chosen_amr}]
-    )
+    affected = pd.DataFrame([{"task_id": event.target_id, "amr_id": chosen_amr}])
     return table, impact_row(event, affected, "new task inserted with placeholder assignment")
 
 
-def apply_dynamic_events(schedule, edge_schedule, dynamic_events):
+def apply_dynamic_events(schedule, trajectory_schedule, dynamic_events):
     table = initialize_reschedule_table(schedule)
     impact_rows = []
 
     for event in dynamic_events.itertuples(index=False):
-        if event.event_type == "edge_block":
-            table, impact = process_edge_block(table, edge_schedule, event)
+        if event.event_type == "area_block":
+            table, impact = process_area_block(table, trajectory_schedule, event)
         elif event.event_type == "amr_delay":
             table, impact = process_amr_delay(table, event)
         elif event.event_type == "new_task":
@@ -322,8 +348,8 @@ def select_output_columns(table):
 
 
 def main():
-    schedule, edge_schedule, dynamic_events = load_inputs()
-    reschedule_table, event_impact = apply_dynamic_events(schedule, edge_schedule, dynamic_events)
+    schedule, trajectory_schedule, dynamic_events = load_inputs()
+    reschedule_table, event_impact = apply_dynamic_events(schedule, trajectory_schedule, dynamic_events)
     reschedule_result = select_output_columns(reschedule_table)
     summary = build_summary(schedule, reschedule_result, event_impact)
 

@@ -1,1 +1,7 @@
-conflict_id,time,location,location_type,involved_amrs,involved_tasks,involved_path_uids,capacity,active_count,repair_action,status,conflict_method
+conflict_id,time,location,location_type,involved_amrs,involved_tasks,involved_path_uids,distance,clearance_threshold,time_delta,repair_action,status,conflict_method
+C001,6.452,"5.43,4.18",space,AMR1;AMR4,T03;T05,CHG2__P5__path_1;IN1__P6__path_1,0.514,0.6,0.096,not_repaired_interface_stub,detected,spacetime_footprint_check
+C002,18.7885,"9.97,3.58",space,AMR1;AMR4,T04;T06,OUT2__P2__path_1;P8__SORT2__path_1,0.468,0.6,0.171,not_repaired_interface_stub,detected,spacetime_footprint_check
+C003,19.2885,"9.90,3.76",space,AMR1;AMR4,T04;T06,OUT2__P2__path_1;P8__SORT2__path_1,0.531,0.6,0.171,not_repaired_interface_stub,detected,spacetime_footprint_check
+C004,24.293,"8.01,0.65",space,AMR3;AMR4,T07;T09,P4__SORT1__path_1;SORT2__P7__path_1,0.487,0.6,0.112,not_repaired_interface_stub,detected,spacetime_footprint_check
+C005,24.793,"8.01,0.65",space,AMR3;AMR4,T07;T09,P4__SORT1__path_1;SORT2__P7__path_1,0.513,0.6,0.112,not_repaired_interface_stub,detected,spacetime_footprint_check
+C006,36.088,"8.53,3.30",space,AMR1;AMR2,T10;T11,P5__OUT1__path_1;SORT1__P3__path_1,0.535,0.6,0.052,not_repaired_interface_stub,detected,spacetime_footprint_check

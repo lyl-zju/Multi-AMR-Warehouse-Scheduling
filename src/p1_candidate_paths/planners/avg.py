@@ -19,10 +19,8 @@ from .common import (
     DEFAULT_AMR_SPEED,
     FOOTPRINT_RADIUS,
     GRID_CELL_COLUMNS,
-    NODE_OCCUPANCY_COLUMNS,
     PATH_COLUMNS,
     TRAJECTORY_COLUMNS,
-    empty_edge_occupancy,
     format_geometry,
     inflate_obstacles,
     path_distance,
@@ -207,7 +205,6 @@ def generate_outputs(obstacles, key_nodes, from_node=None, to_node=None):
     path_records = []
     waypoint_records = []
     trajectory_records = []
-    node_occupancy_records = []
 
     for from_node, to_node in selected_pairs(key_nodes, from_node, to_node):
         start_point = node_positions[from_node]
@@ -231,10 +228,6 @@ def generate_outputs(obstacles, key_nodes, from_node=None, to_node=None):
                 "path_id": path_id,
                 "rank_by_total": 1,
                 "algorithm": "avg",
-                "node_sequence": f"{from_node}->{to_node}",
-                "edge_sequence": "",
-                "edge_occupancy_offset": "",
-                "node_occupancy_offset": f"{from_node}@0;{to_node}@{metrics['travel_time']:g}",
                 "path_geometry": format_geometry(points),
                 "grid_cell_sequence": "",
                 "trajectory_sample_count": len(trajectory_rows),
@@ -282,35 +275,10 @@ def generate_outputs(obstacles, key_nodes, from_node=None, to_node=None):
                 }
             )
 
-        node_occupancy_records.extend(
-            [
-                {
-                    "path_uid": path_uid,
-                    "from_node": from_node,
-                    "to_node": to_node,
-                    "path_id": path_id,
-                    "node_index": 0,
-                    "node_id": from_node,
-                    "offset_time": 0.0,
-                },
-                {
-                    "path_uid": path_uid,
-                    "from_node": from_node,
-                    "to_node": to_node,
-                    "path_id": path_id,
-                    "node_index": 1,
-                    "node_id": to_node,
-                    "offset_time": metrics["travel_time"],
-                },
-            ]
-        )
-
     outputs = (
         pd.DataFrame(path_records, columns=PATH_COLUMNS),
         pd.DataFrame(waypoint_records, columns=GRID_CELL_COLUMNS),
         pd.DataFrame(trajectory_records, columns=TRAJECTORY_COLUMNS),
-        empty_edge_occupancy(),
-        pd.DataFrame(node_occupancy_records, columns=NODE_OCCUPANCY_COLUMNS),
     )
     messages = [f"AVG turn cost per radian: {TURN_COST_PER_RADIAN:g}"]
     return outputs, messages

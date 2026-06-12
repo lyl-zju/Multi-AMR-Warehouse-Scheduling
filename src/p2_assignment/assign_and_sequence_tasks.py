@@ -55,8 +55,6 @@ def zero_path(from_node, to_node):
         "travel_time": 0.0,
         "distance": 0.0,
         "total_cost": 0.0,
-        "edge_sequence": "",
-        "node_sequence": from_node,
     }
 
 
@@ -187,13 +185,11 @@ def build_assignment_result(tasks, amrs, assignment_seed, path_lookup):
                     "transition_travel_time": transition_time,
                     "transition_distance": path_number(transition_path, "distance"),
                     "transition_cost": path_number(transition_path, "total_cost"),
-                    "transition_edge_sequence": path_value(transition_path, "edge_sequence"),
                     "loaded_path_uid": path_value(loaded_path, "path_uid"),
                     "loaded_path_id": path_value(loaded_path, "path_id"),
                     "loaded_travel_time": loaded_time,
                     "loaded_distance": path_number(loaded_path, "distance"),
                     "loaded_cost": path_number(loaded_path, "total_cost"),
-                    "loaded_edge_sequence": path_value(loaded_path, "edge_sequence"),
                     "estimated_arrival_pickup": arrival_pickup,
                     "estimated_start_time": estimated_start,
                     "estimated_finish_time": estimated_finish,

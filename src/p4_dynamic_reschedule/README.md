@@ -1,16 +1,16 @@
-﻿# P4 动态扰动与滚动时域重排
+# P4 动态扰动与滚动时域重排
 
-负责处理动态事件，识别受影响任务，并生成重排结果接口。
+P4 读取 P3 时间表、二维轨迹和动态事件，识别受影响任务并生成重排结果接口。
 
 ## 输入
 
 ```text
 data/processed/p3/schedule_result.csv
-data/processed/p3/edge_occupancy_schedule.csv
+data/processed/p3/trajectory_schedule.csv
 data/raw/dynamic_events.csv
 ```
 
-## 脚本
+## 运行
 
 ```powershell
 python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
@@ -24,6 +24,12 @@ data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
 ```
 
-## 报告用途
+## 动态事件
 
-用于展示通道封锁、AMR 延误、临时新增任务对原调度的影响，以及重排前后变化。当前为滚动时域接口占位版。
+```text
+area_block  带 x,y,width,height,start_time,end_time 的二维区域封锁
+amr_delay   AMR 时间窗延误
+new_task    运行中新增任务
+```
+
+当前实现是接口占位版：区域封锁会检查轨迹 footprint 是否进入矩形区域，AMR 延误会后移该车受影响任务，新增任务会插入当前最早空闲 AMR。

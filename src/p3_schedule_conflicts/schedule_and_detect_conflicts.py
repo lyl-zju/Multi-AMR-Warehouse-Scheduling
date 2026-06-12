@@ -1,45 +1,51 @@
 import argparse
+from math import hypot
 from pathlib import Path
 
 import pandas as pd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 P2_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p2"
 PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p3"
 P1_ALGORITHMS = ("basic_astar", "vg", "avg", "davg")
 DEFAULT_P1_ALGORITHM = "basic_astar"
 
 SCHEDULING_METHOD = "baseline_interface_stub"
-CONFLICT_METHOD = "interval_capacity_check_stub"
-NODE_CAPACITY = 1
-EDGE_SCHEDULE_COLUMNS = [
+CONFLICT_METHOD = "spacetime_footprint_check"
+TIME_TOLERANCE = 0.25
+SAFETY_MARGIN = 0.10
+
+TRAJECTORY_SCHEDULE_COLUMNS = [
     "amr_id",
     "task_id",
     "sequence_order",
     "segment_type",
     "path_uid",
-    "step_index",
-    "edge_id",
-    "from_node_on_edge",
-    "to_node_on_edge",
-    "start_time",
-    "end_time",
-    "duration",
-    "capacity",
-    "edge_type",
-    "lockable",
+    "sample_index",
+    "absolute_time",
+    "offset_time",
+    "x",
+    "y",
+    "theta",
+    "speed",
+    "footprint_radius",
 ]
-NODE_SCHEDULE_COLUMNS = [
-    "amr_id",
-    "task_id",
-    "sequence_order",
-    "segment_type",
-    "path_uid",
-    "node_index",
-    "node_id",
+
+CONFLICT_COLUMNS = [
+    "conflict_id",
     "time",
+    "location",
+    "location_type",
+    "involved_amrs",
+    "involved_tasks",
+    "involved_path_uids",
+    "distance",
+    "clearance_threshold",
+    "time_delta",
+    "repair_action",
+    "status",
+    "conflict_method",
 ]
 
 
@@ -48,7 +54,7 @@ def p1_data_dir(algorithm):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Build schedules and detect conflicts using selected P1 paths.")
+    parser = argparse.ArgumentParser(description="Build schedules and detect 2D trajectory conflicts.")
     parser.add_argument(
         "--p1-algorithm",
         choices=P1_ALGORITHMS,
@@ -61,12 +67,8 @@ def parse_args():
 def load_inputs(p1_algorithm=DEFAULT_P1_ALGORITHM):
     p1_dir = p1_data_dir(p1_algorithm)
     assignment = pd.read_csv(P2_DATA_DIR / "assignment_result.csv")
-    path_cost = pd.read_csv(p1_dir / "path_cost.csv")
-    path_edge_occupancy = pd.read_csv(p1_dir / "path_edge_occupancy.csv")
-    path_node_occupancy = pd.read_csv(p1_dir / "path_node_occupancy.csv")
-    edges = pd.read_csv(RAW_DATA_DIR / "edges.csv")
-    nodes = pd.read_csv(RAW_DATA_DIR / "nodes.csv")
-    return assignment, path_cost, path_edge_occupancy, path_node_occupancy, edges, nodes
+    trajectory_samples = pd.read_csv(p1_dir / "path_trajectory_samples.csv")
+    return assignment, trajectory_samples
 
 
 def is_present(value):
@@ -79,55 +81,34 @@ def number_or_none(value):
     return float(value)
 
 
-def expand_edge_occupancy(path_uid, base_time, occupancy_table, context):
+def expand_trajectory(path_uid, base_time, trajectory_samples, context):
     if not is_present(path_uid) or path_uid == "same_node" or base_time is None:
         return []
 
-    rows = occupancy_table[occupancy_table["path_uid"] == path_uid]
+    rows = trajectory_samples[trajectory_samples["path_uid"] == path_uid]
     expanded = []
     for row in rows.itertuples(index=False):
+        offset_time = float(row.offset_time)
         expanded.append(
             {
                 **context,
                 "path_uid": path_uid,
-                "step_index": row.step_index,
-                "edge_id": row.edge_id,
-                "from_node_on_edge": row.from_node_on_edge,
-                "to_node_on_edge": row.to_node_on_edge,
-                "start_time": round(base_time + float(row.offset_start), 3),
-                "end_time": round(base_time + float(row.offset_end), 3),
-                "duration": row.travel_time,
-                "capacity": int(row.capacity),
-                "edge_type": row.edge_type,
-                "lockable": int(row.lockable),
+                "sample_index": int(row.sample_index),
+                "absolute_time": round(base_time + offset_time, 3),
+                "offset_time": offset_time,
+                "x": float(row.x),
+                "y": float(row.y),
+                "theta": float(row.theta),
+                "speed": float(row.speed),
+                "footprint_radius": float(row.footprint_radius),
             }
         )
     return expanded
 
 
-def expand_node_occupancy(path_uid, base_time, occupancy_table, context):
-    if not is_present(path_uid) or path_uid == "same_node" or base_time is None:
-        return []
-
-    rows = occupancy_table[occupancy_table["path_uid"] == path_uid]
-    expanded = []
-    for row in rows.itertuples(index=False):
-        expanded.append(
-            {
-                **context,
-                "path_uid": path_uid,
-                "node_index": row.node_index,
-                "node_id": row.node_id,
-                "time": round(base_time + float(row.offset_time), 3),
-            }
-        )
-    return expanded
-
-
-def build_schedule(assignment, edge_occupancy, node_occupancy):
+def build_schedule(assignment, trajectory_samples):
     schedule_rows = []
-    edge_schedule_rows = []
-    node_schedule_rows = []
+    trajectory_rows = []
 
     assignment = assignment.sort_values(["amr_id", "sequence_order", "task_id"])
 
@@ -173,35 +154,19 @@ def build_schedule(assignment, edge_occupancy, node_occupancy):
                 "task_id": row.task_id,
                 "sequence_order": int(row.sequence_order),
             }
-            edge_schedule_rows.extend(
-                expand_edge_occupancy(
+            trajectory_rows.extend(
+                expand_trajectory(
                     row.transition_path_uid,
                     transition_start_time,
-                    edge_occupancy,
+                    trajectory_samples,
                     {**task_context, "segment_type": "transition"},
                 )
             )
-            edge_schedule_rows.extend(
-                expand_edge_occupancy(
+            trajectory_rows.extend(
+                expand_trajectory(
                     row.loaded_path_uid,
                     loaded_start_time,
-                    edge_occupancy,
-                    {**task_context, "segment_type": "loaded"},
-                )
-            )
-            node_schedule_rows.extend(
-                expand_node_occupancy(
-                    row.transition_path_uid,
-                    transition_start_time,
-                    node_occupancy,
-                    {**task_context, "segment_type": "transition"},
-                )
-            )
-            node_schedule_rows.extend(
-                expand_node_occupancy(
-                    row.loaded_path_uid,
-                    loaded_start_time,
-                    node_occupancy,
+                    trajectory_samples,
                     {**task_context, "segment_type": "loaded"},
                 )
             )
@@ -243,118 +208,77 @@ def build_schedule(assignment, edge_occupancy, node_occupancy):
 
     return (
         pd.DataFrame(schedule_rows),
-        pd.DataFrame(edge_schedule_rows, columns=EDGE_SCHEDULE_COLUMNS),
-        pd.DataFrame(node_schedule_rows, columns=NODE_SCHEDULE_COLUMNS),
+        pd.DataFrame(trajectory_rows, columns=TRAJECTORY_SCHEDULE_COLUMNS),
     )
 
 
-def detect_edge_conflicts(edge_schedule):
+def detect_trajectory_conflicts(trajectory_schedule):
     conflicts = []
-    if edge_schedule.empty:
-        return conflicts
+    if trajectory_schedule.empty:
+        return pd.DataFrame(conflicts, columns=CONFLICT_COLUMNS)
 
-    for edge_id, group in edge_schedule.groupby("edge_id", sort=True):
-        time_points = sorted(set(group["start_time"].tolist() + group["end_time"].tolist()))
-        if len(time_points) < 2:
-            continue
-
-        for start, end in zip(time_points[:-1], time_points[1:]):
-            if start == end:
+    samples = trajectory_schedule.sort_values("absolute_time").reset_index(drop=True)
+    for left_index, left in samples.iterrows():
+        for right_index in range(left_index + 1, len(samples)):
+            right = samples.iloc[right_index]
+            time_delta = float(right["absolute_time"]) - float(left["absolute_time"])
+            if time_delta > TIME_TOLERANCE:
+                break
+            if left["amr_id"] == right["amr_id"]:
                 continue
-            active = group[(group["start_time"] < end) & (group["end_time"] > start)]
-            active_amrs = sorted(set(active["amr_id"]))
-            capacity_values = pd.to_numeric(active["capacity"], errors="coerce").dropna()
-            capacity = int(capacity_values.min()) if not capacity_values.empty else 1
-            if len(active_amrs) > capacity:
-                conflicts.append(
-                    {
-                        "time": f"{start:g}-{end:g}",
-                        "location": edge_id,
-                        "location_type": "edge",
-                        "involved_amrs": ";".join(active_amrs),
-                        "involved_tasks": ";".join(sorted(set(active["task_id"]))),
-                        "involved_path_uids": ";".join(sorted(set(active["path_uid"]))),
-                        "capacity": capacity,
-                        "active_count": len(active_amrs),
-                        "repair_action": "not_repaired_interface_stub",
-                        "status": "detected",
-                        "conflict_method": CONFLICT_METHOD,
-                    }
-                )
-    return conflicts
 
+            distance = hypot(float(left["x"]) - float(right["x"]), float(left["y"]) - float(right["y"]))
+            threshold = (
+                float(left["footprint_radius"])
+                + float(right["footprint_radius"])
+                + SAFETY_MARGIN
+            )
+            if distance >= threshold:
+                continue
 
-def detect_node_conflicts(node_schedule):
-    conflicts = []
-    if node_schedule.empty:
-        return conflicts
-
-    for (node_id, time), group in node_schedule.groupby(["node_id", "time"], sort=True):
-        active_amrs = sorted(set(group["amr_id"]))
-        if len(active_amrs) > NODE_CAPACITY:
+            conflict_time = (float(left["absolute_time"]) + float(right["absolute_time"])) / 2.0
+            location_x = (float(left["x"]) + float(right["x"])) / 2.0
+            location_y = (float(left["y"]) + float(right["y"])) / 2.0
             conflicts.append(
                 {
-                    "time": f"{time:g}",
-                    "location": node_id,
-                    "location_type": "node",
-                    "involved_amrs": ";".join(active_amrs),
-                    "involved_tasks": ";".join(sorted(set(group["task_id"]))),
-                    "involved_path_uids": ";".join(sorted(set(group["path_uid"]))),
-                    "capacity": NODE_CAPACITY,
-                    "active_count": len(active_amrs),
+                    "time": f"{conflict_time:g}",
+                    "location": f"{location_x:.2f},{location_y:.2f}",
+                    "location_type": "space",
+                    "involved_amrs": ";".join(sorted([str(left["amr_id"]), str(right["amr_id"])])),
+                    "involved_tasks": ";".join(sorted([str(left["task_id"]), str(right["task_id"])])),
+                    "involved_path_uids": ";".join(sorted([str(left["path_uid"]), str(right["path_uid"])])),
+                    "distance": round(distance, 3),
+                    "clearance_threshold": round(threshold, 3),
+                    "time_delta": round(abs(time_delta), 3),
                     "repair_action": "not_repaired_interface_stub",
                     "status": "detected",
                     "conflict_method": CONFLICT_METHOD,
                 }
             )
-    return conflicts
 
-
-def build_conflict_log(edge_schedule, node_schedule):
-    conflict_rows = detect_edge_conflicts(edge_schedule) + detect_node_conflicts(node_schedule)
-    for index, conflict in enumerate(conflict_rows, start=1):
+    for index, conflict in enumerate(conflicts, start=1):
         conflict["conflict_id"] = f"C{index:03d}"
-
-    columns = [
-        "conflict_id",
-        "time",
-        "location",
-        "location_type",
-        "involved_amrs",
-        "involved_tasks",
-        "involved_path_uids",
-        "capacity",
-        "active_count",
-        "repair_action",
-        "status",
-        "conflict_method",
-    ]
-    return pd.DataFrame(conflict_rows, columns=columns)
+    return pd.DataFrame(conflicts, columns=CONFLICT_COLUMNS)
 
 
 def main():
     args = parse_args()
-    assignment, path_cost, path_edge_occupancy, path_node_occupancy, edges, nodes = load_inputs(args.p1_algorithm)
-    schedule_result, edge_schedule, node_schedule = build_schedule(
-        assignment, path_edge_occupancy, path_node_occupancy
-    )
-    conflict_log = build_conflict_log(edge_schedule, node_schedule)
+    assignment, trajectory_samples = load_inputs(args.p1_algorithm)
+    schedule_result, trajectory_schedule = build_schedule(assignment, trajectory_samples)
+    conflict_log = detect_trajectory_conflicts(trajectory_schedule)
 
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
     schedule_result.to_csv(PROCESSED_DATA_DIR / "schedule_result.csv", index=False)
-    edge_schedule.to_csv(PROCESSED_DATA_DIR / "edge_occupancy_schedule.csv", index=False)
-    node_schedule.to_csv(PROCESSED_DATA_DIR / "node_occupancy_schedule.csv", index=False)
+    trajectory_schedule.to_csv(PROCESSED_DATA_DIR / "trajectory_schedule.csv", index=False)
     conflict_log.to_csv(PROCESSED_DATA_DIR / "conflict_log.csv", index=False)
 
     print(f"Scheduled task rows: {len(schedule_result)}")
     print(f"P1 algorithm: {args.p1_algorithm}")
-    print(f"Edge occupancy rows: {len(edge_schedule)}")
-    print(f"Node occupancy rows: {len(node_schedule)}")
+    print(f"Trajectory sample rows: {len(trajectory_schedule)}")
     print(f"Detected conflicts: {len(conflict_log)}")
     print(f"Unscheduled rows: {(schedule_result['schedule_status'] != 'scheduled').sum()}")
     print(f"Saved: {PROCESSED_DATA_DIR / 'schedule_result.csv'}")
-    print(f"Saved: {PROCESSED_DATA_DIR / 'edge_occupancy_schedule.csv'}")
-    print(f"Saved: {PROCESSED_DATA_DIR / 'node_occupancy_schedule.csv'}")
+    print(f"Saved: {PROCESSED_DATA_DIR / 'trajectory_schedule.csv'}")
     print(f"Saved: {PROCESSED_DATA_DIR / 'conflict_log.csv'}")
 
 
