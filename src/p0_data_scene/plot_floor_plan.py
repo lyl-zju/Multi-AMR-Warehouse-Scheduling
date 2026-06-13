@@ -158,7 +158,12 @@ def plot_floor_plan(nodes, amrs, tasks, zones, obstacles):
 
     legend_items = [
         Rectangle((0, 0), 1, 1, facecolor="#f4a261", edgecolor="#a65f12", alpha=0.72, label="rack obstacle"),
-        Rectangle((0, 0), 1, 1, facecolor="#f7b7bd", edgecolor="#c1121f", alpha=0.75, label="dynamic blocked area"),
+    ]
+    if (obstacles["obstacle_type"] == "dynamic_block").any():
+        legend_items.append(
+            Rectangle((0, 0), 1, 1, facecolor="#f7b7bd", edgecolor="#c1121f", alpha=0.75, label="dynamic blocked area")
+        )
+    legend_items.extend([
         Line2D([0], [0], marker="o", color="w", label="task / shelf point",
                markerfacecolor="#b45309", markeredgecolor="white", markersize=8),
         Line2D([0], [0], marker="*", color="w", label="AMR initial pose",
@@ -167,7 +172,7 @@ def plot_floor_plan(nodes, amrs, tasks, zones, obstacles):
                markerfacecolor="#06b6d4", markersize=8),
         Line2D([0], [0], marker="v", color="w", label="delivery point",
                markerfacecolor="#ef4444", markersize=8),
-    ]
+    ])
     ax.legend(
         handles=legend_items,
         loc="upper center",

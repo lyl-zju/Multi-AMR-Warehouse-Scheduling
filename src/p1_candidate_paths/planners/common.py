@@ -12,7 +12,7 @@ P1_ALGORITHMS = ("basic_astar", "vg", "avg", "davg")
 IMPLEMENTED_ALGORITHMS = {"basic_astar", "vg", "avg", "davg"}
 DEFAULT_P1_ALGORITHM = "basic_astar"
 
-OBSTACLE_INFLATION = 0.12
+OBSTACLE_INFLATION = 0.30
 DEFAULT_AMR_SPEED = 1.0
 TRAJECTORY_SAMPLE_DT = 0.5
 FOOTPRINT_RADIUS = 0.25

@@ -9,4 +9,3 @@ WALL_TOP,-0.8,6.2,13.6,0.2,wall,Top Wall
 WALL_BOTTOM,-0.8,-0.8,13.6,0.2,wall,Bottom Wall
 WALL_LEFT,-0.8,-0.8,0.2,7.4,wall,Left Wall
 WALL_RIGHT,12.6,-0.8,0.2,7.4,wall,Right Wall
-DYN_BLOCK_01,6.55,2.95,1.05,0.55,dynamic_block,Temporary Block Area
