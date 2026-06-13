@@ -1,251 +1,106 @@
+"""P2 主入口：任务分配 + 任务排序 + 候选路径选择 + 时间/电量估算。
+
+用法（项目根目录下）：
+    python .\\src\\p2_assignment\\assign_and_sequence_tasks.py                       # 默认 m2 + basic_astar
+    python .\\src\\p2_assignment\\assign_and_sequence_tasks.py --method m3 --p1-algorithm vg
+
+方法：
+    m0  修复版贪心（对照基线）
+    m1  两阶段法：0-1 指派(分支定界) + 车内动态规划       [需要 pulp]
+    m2  联合 MILP + 目标规划序贯解法（默认，精确）        [需要 pulp]
+    m3  后悔值插入 + 局部搜索（无求解器依赖）
+
+P1 路径算法（--p1-algorithm）：basic_astar / vg / avg / davg，
+读取 data/processed/p1/<algorithm>/path_cost.csv。
+
+输出（接口与原框架兼容，P3 直接消费）：
+    data/processed/p2/assignment_result.csv
+    data/processed/p2/amr_sequence_summary.csv
+"""
+
 import argparse
+import sys
+import time
 from pathlib import Path
 
-import pandas as pd
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from p2core import load_problem, evaluate
+from p2core.output_writer import build_assignment_result, build_sequence_summary
+from solvers import SOLVERS, SOLVER_LABELS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 PROCESSED_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "p2"
-P1_ALGORITHMS = ("basic_astar", "vg", "avg", "davg")
-DEFAULT_P1_ALGORITHM = "basic_astar"
-
-ASSIGNMENT_METHOD = "baseline_interface_stub"
+P1_ALGORITHMS = ("basic_astar", "vg", "avg", "davg", "mixed")
+DEFAULT_P1_ALGORITHM = "mixed"
 
 
-def p1_data_dir(algorithm):
-    return PROJECT_ROOT / "data" / "processed" / "p1" / algorithm
+def p1_path_cost_csv(algorithm):
+    return PROJECT_ROOT / "data" / "processed" / "p1" / algorithm / "path_cost.csv"
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="Assign and sequence tasks using selected P1 path costs.")
-    parser.add_argument(
-        "--p1-algorithm",
-        choices=P1_ALGORITHMS,
-        default=DEFAULT_P1_ALGORITHM,
-        help="P1 path planning method to read.",
-    )
-    return parser.parse_args()
+def run(method="m2", p1_algorithm=DEFAULT_P1_ALGORITHM, time_limit=60,
+        raw_dir=RAW_DATA_DIR, out_dir=PROCESSED_DATA_DIR,
+        tasks_csv=None, amrs_csv=None, write_outputs=True):
+    data = load_problem(raw_dir, p1_path_cost_csv(p1_algorithm),
+                        tasks_csv=tasks_csv, amrs_csv=amrs_csv)
 
+    t0 = time.time()
+    solution = SOLVERS[method](data, time_limit=time_limit)
+    solve_seconds = round(time.time() - t0, 3)
+    evaluation = evaluate(data, solution)
 
-def load_inputs(p1_algorithm=DEFAULT_P1_ALGORITHM):
-    tasks = pd.read_csv(RAW_DATA_DIR / "tasks.csv")
-    amrs = pd.read_csv(RAW_DATA_DIR / "amrs.csv")
-    path_cost = pd.read_csv(p1_data_dir(p1_algorithm) / "path_cost.csv")
-    return tasks, amrs, path_cost
+    if write_outputs:
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        method_name = f"{solution.method}+{p1_algorithm}"
+        assignment = build_assignment_result(data, solution, evaluation, method_name)
+        summary = build_sequence_summary(data, evaluation, method_name)
+        assignment.to_csv(out_dir / "assignment_result.csv", index=False)
+        summary.to_csv(out_dir / "amr_sequence_summary.csv", index=False)
 
-
-def build_best_path_lookup(path_cost):
-    best_paths = (
-        path_cost.sort_values(
-            ["from_node", "to_node", "total_cost", "travel_time", "rank_by_total"]
-        )
-        .drop_duplicates(["from_node", "to_node"], keep="first")
-    )
-    return {
-        (row.from_node, row.to_node): row._asdict()
-        for row in best_paths.itertuples(index=False)
-    }
-
-
-def zero_path(from_node, to_node):
-    return {
-        "path_uid": "same_node",
-        "path_id": "same_node",
-        "travel_time": 0.0,
-        "distance": 0.0,
-        "total_cost": 0.0,
-    }
-
-
-def get_best_path(path_lookup, from_node, to_node):
-    if from_node == to_node:
-        return zero_path(from_node, to_node)
-    return path_lookup.get((from_node, to_node))
-
-
-def path_value(path, key):
-    if path is None:
-        return None
-    return path.get(key)
-
-
-def path_number(path, key):
-    value = path_value(path, key)
-    if value is None:
-        return None
-    return float(value)
-
-
-def sorted_tasks_for_assignment(tasks):
-    data = tasks.copy()
-    data["priority_sort"] = -data["priority"].astype(float)
-    data = data.sort_values(
-        ["earliest_start", "priority_sort", "latest_finish", "task_id"]
-    )
-    return data.drop(columns=["priority_sort"])
-
-
-def choose_assignments(tasks, amrs, path_lookup):
-    # TODO: replace this baseline with a MIP, CP-SAT, or metaheuristic solver.
-    # Current goal: keep the P2 input/output interface usable for P3/P4.
-    amr_load = {row.amr_id: 0.0 for row in amrs.itertuples(index=False)}
-    amr_init = {row.amr_id: row.init_node for row in amrs.itertuples(index=False)}
-    assignments = []
-
-    for task in sorted_tasks_for_assignment(tasks).itertuples(index=False):
-        candidates = []
-        loaded_path = get_best_path(path_lookup, task.pickup, task.delivery)
-
-        for amr_id, init_node in amr_init.items():
-            empty_path = get_best_path(path_lookup, init_node, task.pickup)
-            empty_cost = path_number(empty_path, "total_cost")
-            loaded_cost = path_number(loaded_path, "total_cost")
-
-            missing_penalty = 100000.0 if empty_path is None or loaded_path is None else 0.0
-            score = (
-                amr_load[amr_id]
-                + (empty_cost if empty_cost is not None else 0.0)
-                + (loaded_cost if loaded_cost is not None else 0.0)
-                + missing_penalty
-            )
-            candidates.append((score, amr_id))
-
-        _, assigned_amr = min(candidates, key=lambda item: (item[0], item[1]))
-        assignments.append({"task_id": task.task_id, "amr_id": assigned_amr})
-
-        if loaded_path is not None:
-            amr_load[assigned_amr] += float(task.service_time) + float(loaded_path["travel_time"])
-        else:
-            amr_load[assigned_amr] += float(task.service_time)
-
-    return pd.DataFrame(assignments)
-
-
-def build_assignment_result(tasks, amrs, assignment_seed, path_lookup):
-    task_map = {row.task_id: row._asdict() for row in tasks.itertuples(index=False)}
-    amr_init = {row.amr_id: row.init_node for row in amrs.itertuples(index=False)}
-    results = []
-
-    merged = assignment_seed.merge(tasks, on="task_id", how="left")
-    merged["priority_sort"] = -merged["priority"].astype(float)
-    merged = merged.sort_values(
-        ["amr_id", "earliest_start", "priority_sort", "latest_finish", "task_id"]
-    )
-
-    for amr_id, group in merged.groupby("amr_id", sort=True):
-        current_node = amr_init[amr_id]
-        current_time = 0.0
-        predecessor_task_id = ""
-
-        for sequence_order, row in enumerate(group.itertuples(index=False), start=1):
-            task = task_map[row.task_id]
-            transition_path = get_best_path(path_lookup, current_node, task["pickup"])
-            loaded_path = get_best_path(path_lookup, task["pickup"], task["delivery"])
-
-            transition_time = path_number(transition_path, "travel_time")
-            loaded_time = path_number(loaded_path, "travel_time")
-            transition_status = "ok" if transition_path is not None else "missing_path"
-            loaded_path_status = "ok" if loaded_path is not None else "missing_path"
-
-            if transition_time is not None and loaded_time is not None:
-                arrival_pickup = current_time + transition_time
-                estimated_start = max(float(task["earliest_start"]), arrival_pickup)
-                estimated_finish = estimated_start + float(task["service_time"]) + loaded_time
-                estimated_delay = max(0.0, estimated_finish - float(task["latest_finish"]))
-                current_time = estimated_finish
-            else:
-                arrival_pickup = None
-                estimated_start = None
-                estimated_finish = None
-                estimated_delay = None
-
-            notes = []
-            if transition_status != "ok":
-                notes.append(f"no path from {current_node} to {task['pickup']}")
-            if loaded_path_status != "ok":
-                notes.append(f"no path from {task['pickup']} to {task['delivery']}")
-
-            results.append(
-                {
-                    "amr_id": amr_id,
-                    "assigned_amr": amr_id,
-                    "task_id": task["task_id"],
-                    "sequence_order": sequence_order,
-                    "predecessor_task_id": predecessor_task_id,
-                    "start_node": current_node,
-                    "pickup": task["pickup"],
-                    "delivery": task["delivery"],
-                    "service_time": task["service_time"],
-                    "earliest_start": task["earliest_start"],
-                    "latest_finish": task["latest_finish"],
-                    "priority": task["priority"],
-                    "transition_path_uid": path_value(transition_path, "path_uid"),
-                    "transition_path_id": path_value(transition_path, "path_id"),
-                    "transition_travel_time": transition_time,
-                    "transition_distance": path_number(transition_path, "distance"),
-                    "transition_cost": path_number(transition_path, "total_cost"),
-                    "loaded_path_uid": path_value(loaded_path, "path_uid"),
-                    "loaded_path_id": path_value(loaded_path, "path_id"),
-                    "loaded_travel_time": loaded_time,
-                    "loaded_distance": path_number(loaded_path, "distance"),
-                    "loaded_cost": path_number(loaded_path, "total_cost"),
-                    "estimated_arrival_pickup": arrival_pickup,
-                    "estimated_start_time": estimated_start,
-                    "estimated_finish_time": estimated_finish,
-                    "estimated_delay": estimated_delay,
-                    "transition_status": transition_status,
-                    "loaded_path_status": loaded_path_status,
-                    "assignment_method": ASSIGNMENT_METHOD,
-                    "notes": "; ".join(notes),
-                }
-            )
-
-            predecessor_task_id = task["task_id"]
-            current_node = task["delivery"]
-
-    return pd.DataFrame(results)
-
-
-def build_sequence_summary(assignment_result):
-    rows = []
-    for amr_id, group in assignment_result.groupby("amr_id", sort=True):
-        finish_times = pd.to_numeric(group["estimated_finish_time"], errors="coerce")
-        delays = pd.to_numeric(group["estimated_delay"], errors="coerce").fillna(0.0)
-        rows.append(
-            {
-                "amr_id": amr_id,
-                "task_count": len(group),
-                "task_sequence": "->".join(group["task_id"].astype(str)),
-                "missing_transition_count": int((group["transition_status"] != "ok").sum()),
-                "missing_loaded_path_count": int((group["loaded_path_status"] != "ok").sum()),
-                "estimated_finish_time": finish_times.max(),
-                "estimated_total_delay": delays.sum(),
-                "assignment_method": ASSIGNMENT_METHOD,
-            }
-        )
-    return pd.DataFrame(rows)
+    return data, solution, evaluation, solve_seconds
 
 
 def main():
-    args = parse_args()
-    tasks, amrs, path_cost = load_inputs(args.p1_algorithm)
-    path_lookup = build_best_path_lookup(path_cost)
-    assignment_seed = choose_assignments(tasks, amrs, path_lookup)
-    assignment_result = build_assignment_result(tasks, amrs, assignment_seed, path_lookup)
-    sequence_summary = build_sequence_summary(assignment_result)
+    parser = argparse.ArgumentParser(description="P2 任务分配与任务排序")
+    parser.add_argument("--method", choices=sorted(SOLVERS), default="m2",
+                        help="求解方法（默认 m2 联合 MILP）")
+    parser.add_argument("--p1-algorithm", choices=P1_ALGORITHMS,
+                        default=DEFAULT_P1_ALGORITHM,
+                        help="读取哪个 P1 路径算法的 path_cost.csv")
+    parser.add_argument("--time-limit", type=int, default=60,
+                        help="MILP 每层求解时间上限（秒）")
+    args = parser.parse_args()
 
-    PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    assignment_result.to_csv(PROCESSED_DATA_DIR / "assignment_result.csv", index=False)
-    sequence_summary.to_csv(PROCESSED_DATA_DIR / "amr_sequence_summary.csv", index=False)
+    print(f"P2 方法: {args.method} - {SOLVER_LABELS[args.method]}")
+    print(f"P1 路径算法: {args.p1_algorithm}")
+    data, solution, evaluation, solve_seconds = run(
+        method=args.method, p1_algorithm=args.p1_algorithm,
+        time_limit=args.time_limit)
 
-    print(f"Tasks assigned: {len(assignment_result)}")
-    print(f"P1 algorithm: {args.p1_algorithm}")
-    print(f"AMRs used: {assignment_result['amr_id'].nunique()}")
-    print(f"Missing transitions: {(assignment_result['transition_status'] != 'ok').sum()}")
-    print(f"Missing loaded paths: {(assignment_result['loaded_path_status'] != 'ok').sum()}")
-    print(f"Saved: {PROCESSED_DATA_DIR / 'assignment_result.csv'}")
-    print(f"Saved: {PROCESSED_DATA_DIR / 'amr_sequence_summary.csv'}")
+    m = evaluation.metrics
+    print(f"求解耗时: {solve_seconds}s")
+    print("各 AMR 任务序列:")
+    for amr_id in data.amr_ids:
+        seq = solution.sequences.get(amr_id, [])
+        print(f"  {amr_id}: {' -> '.join(seq) if seq else '(空)'}")
+
+    print(f"缺失衔接/载货路径: {m['missing_transition_count']} / "
+          f"{m['missing_loaded_path_count']}")
+    print(f"电量阈值违反: {m['energy_violation_count']}")
+    print(f"F1: priority_late_count={m['priority_late_count']}, "
+          f"late_count={m['late_count']}")
+    print(f"F2={m['F2']} (priority_delay={m['priority_delay']}, "
+          f"total_delay={m['total_delay']}, Cmax={m['Cmax']})")
+    print(f"F3={m['F3']} (empty_cost={m['empty_cost']}, "
+          f"load_balance={m['load_balance_penalty']}, "
+          f"energy={m['total_energy_used']})")
+    if getattr(solution, "info", None):
+        print(f"求解器信息: {solution.info}")
+    print(f"已保存: {PROCESSED_DATA_DIR / 'assignment_result.csv'}")
+    print(f"已保存: {PROCESSED_DATA_DIR / 'amr_sequence_summary.csv'}")
 
 
 if __name__ == "__main__":

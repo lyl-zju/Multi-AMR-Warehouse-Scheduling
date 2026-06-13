@@ -1,0 +1,7 @@
+task_id,pickup,delivery,service_time,earliest_start,latest_finish,priority
+T01,P7,SORT2,2,0,28,1
+T02,P6,SORT1,2,1,41,2
+T03,P8,SORT2,3,3,39,3
+T04,P8,OUT1,2,5,31,2
+T05,P7,SORT1,2,7,33,2
+T06,P9,OUT2,2,7,37,2

@@ -1,0 +1,4 @@
+amr_id,init_node,battery,speed
+AMR1,IN1,90,1.0
+AMR2,IN2,85,1.0
+AMR3,CHG1,100,0.9

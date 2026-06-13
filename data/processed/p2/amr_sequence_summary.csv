@@ -1,5 +1,5 @@
-amr_id,task_count,task_sequence,missing_transition_count,missing_loaded_path_count,estimated_finish_time,estimated_total_delay,assignment_method
-AMR1,3,T05->T06->T11,0,0,53.739,1.7389999999999972,baseline_interface_stub
-AMR2,3,T02->T08->T10,0,0,40.384,0.0,baseline_interface_stub
-AMR3,2,T01->T09,0,0,27.187,0.0,baseline_interface_stub
-AMR4,4,T03->T04->T07->T12,0,0,42.995000000000005,0.0,baseline_interface_stub
+amr_id,task_count,task_sequence,missing_transition_count,missing_loaded_path_count,estimated_finish_time,estimated_total_delay,total_energy_used,battery_end,energy_violation_count,assignment_method
+AMR1,3,T06->T03->T07,0,0,40.101667,0.0,34.582,55.418,0,m3_regret_insertion_ls+mixed
+AMR2,3,T02->T10->T12,0,0,40.124778,0.0,36.2366,48.7634,0,m3_regret_insertion_ls+mixed
+AMR3,3,T01->T05->T08,0,0,40.577778,0.0,33.8056,66.1944,0,m3_regret_insertion_ls+mixed
+AMR4,3,T04->T09->T11,0,0,40.547273,0.0,38.7122,41.2878,0,m3_regret_insertion_ls+mixed
