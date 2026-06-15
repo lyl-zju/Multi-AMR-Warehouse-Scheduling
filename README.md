@@ -23,6 +23,7 @@ python .\src\p1_candidate_paths\plot_candidate_paths.py --algorithm basic_astar
 python .\src\p2_assignment\assign_and_sequence_tasks.py --p1-algorithm basic_astar
 python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm basic_astar
 python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
+python .\src\p4_dynamic_reschedule\plot_p4_results.py
 ```
 
 `--algorithm` / `--p1-algorithm` 可选 `basic_astar`、`vg`、`avg`、`davg`。
@@ -67,6 +68,11 @@ P4 读取 P3 时间表、二维轨迹和动态事件，生成扰动影响与重�
 data/processed/p4/reschedule_result.csv
 data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
+data/processed/p4/trajectory_schedule.csv
+outputs/p4/p4_gantt_events.png
+outputs/p4/p4_trajectory_map.png
+outputs/p4/p4_event_impact_metrics.png
+outputs/p4/p4_dynamic_reschedule.gif
 ```
 
 ## P1 路径算法
@@ -91,4 +97,4 @@ data/processed/p4/reschedule_summary.csv
 | `amr_delay` | 某台 AMR 在时间窗内延误 |
 | `new_task` | 运行中释放新任务 |
 
-P4 当前仍是接口占位式重排：它会识别受影响任务并整体后移或插入新任务，后续可以替换为正式滚动时域优化。
+P4 当前执行动态滚动重排：它读取 P3 的无冲突基准计划，在 `area_block`、`amr_delay`、`new_task` 事件到来后冻结已执行任务，对未来任务做后悔值插入、局部搜索、候选路径重评估和轨迹冲突修复，并输出重排结果、验收指标和可视化分析图。

@@ -16,6 +16,13 @@ data/raw/dynamic_events.csv
 python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
 ```
 
+生成可视化分析图：
+
+```powershell
+python .\src\p4_dynamic_reschedule\plot_p4_results.py
+python .\src\p4_dynamic_reschedule\plot_p4_results.py --fps 8 --speedup 2
+```
+
 ## 输出
 
 ```text
@@ -23,6 +30,24 @@ data/processed/p4/reschedule_result.csv
 data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
 data/processed/p4/trajectory_schedule.csv
+```
+
+可视化输出：
+
+```text
+outputs/p4/p4_gantt_events.png
+outputs/p4/p4_trajectory_map.png
+outputs/p4/p4_event_impact_metrics.png
+outputs/p4/p4_dynamic_reschedule.gif
+```
+
+三张图分别用于说明：
+
+```text
+p4_gantt_events.png          对比 P3 基准计划和 P4 重排后计划，并叠加动态事件时间窗
+p4_trajectory_map.png        在仓库平面图上展示 P4 最终轨迹、封锁区、新增任务和任务顺序
+p4_event_impact_metrics.png  展示动态事件影响、可行性检查和目标函数指标
+p4_dynamic_reschedule.gif    沿用 P2/P3 的 footprint 动画风格，动态展示封锁、延误、新任务释放和最终重排轨迹
 ```
 
 ## 动态事件
@@ -54,69 +79,194 @@ P4 以动态事件时间为滚动时域边界：
 
 P4 可以看作一个带扰动的动态多机器人取送货调度问题，即动态 PDPTW / 多车辆路径调度问题。P3 已经给出一组可执行的基准计划，P4 在事件时刻 `t_e` 到来后，不重新求解全部历史任务，而是在滚动时域内对尚未固定的任务集合做局部重优化。
 
-### 决策对象
+### 完整数学抽象
 
-在每个滚动时域内，P4 重新决定：
+P4 的滚动时域重排可以抽象为带候选路径选择、动态事件约束和时空冲突约束的动态 PDPTW。设事件时刻为 \(t_e\)，P3 已经给出基准可执行计划。P4 只重排尚未固定的任务。
+
+集合定义：
 
 ```text
-x[k,j]              任务 j 是否由 AMR k 执行
-seq[k]              AMR k 的未来任务执行顺序
-p_trans[k,j]        AMR k 执行任务 j 前的空驶候选路径
-p_load[k,j]         任务 j 的 pickup -> delivery 载货候选路径
-S[j], C[j]          任务 j 的开始时间和完成时间
-W[k,j]              为避免动态封锁或轨迹冲突增加的等待时间
+K                 AMR 集合
+J                 全部任务集合，包含静态任务和动态新增任务
+J_fix             在 t_e 前已经执行或进入执行轨迹的固定任务集合
+J_free            t_e 后允许重排的任务集合，J_free = J \ J_fix
+V                 仓库关键节点集合
+Q_ab              P1 给出的从节点 a 到节点 b 的候选路径集合
+B                 动态封锁区域集合
+R                 AMR 延误窗口集合
+Omega             由轨迹采样得到的潜在时空冲突对集合
 ```
 
-其中，路径变量只能从 P1 `mixed` 路径库中取值，不允许临时生成新路径。已经进入执行轨迹的任务被视为固定决策，不再改变 AMR、顺序和路径。
-
-### 约束条件
-
-P4 保留基础层硬约束：
+任务参数：
 
 ```text
-1. 每个静态任务和动态新增任务必须被且仅被一台 AMR 执行；
-2. 每台 AMR 的未来任务形成一条线性序列；
-3. 相邻任务必须存在 delivery -> pickup 衔接路径；
-4. 每个任务必须存在 pickup -> delivery 载货路径；
-5. S[j] >= earliest_start[j]；
-6. AMR 实际行驶时间考虑 speed 和 loaded_speed_factor；
-7. area_block 时间窗内，轨迹 footprint 不能进入封锁矩形；
-8. amr_delay 时间窗内，目标 AMR 不能执行受影响任务；
-9. 重排后二维轨迹 footprint 和 P/SORT/OUT 节点容量冲突必须为 0；
-10. 电量不得低于 battery_safety_threshold；
-11. 基础层不插入充电任务。
+P_i               任务 i 的取货点
+D_i               任务 i 的送货点
+e_i               任务 i 的最早开始时间
+l_i               任务 i 的期望最晚完成时间
+s_i               任务 i 的取货服务时间
+w_i               任务 i 的优先级权重
 ```
 
-在实现中，`area_block` 通过候选路径轨迹采样与矩形封锁区的时空相交检测处理；若某条候选路径在封锁时间窗内不可行，则优先尝试其他候选路径，必要时推迟该段移动到封锁结束后。`amr_delay` 通过提高对应 AMR 的可用时间和识别重排池处理。
-
-### 目标函数
-
-P4 使用字典序目标规划思想，而不是单一最短路目标。候选方案先比较硬约束违反数，再比较服务质量和运行效率：
+AMR 参数：
 
 ```text
-min lex(
-  hard_violation_count,
-  priority_late_count,
-  late_count,
-  F2,
-  F3,
-  stability_penalty
-)
+a_k               滚动时域开始时 AMR k 的可用时间
+n_k               滚动时域开始时 AMR k 所在节点
+b_k               滚动时域开始时 AMR k 的剩余电量
+v_k               AMR k 的速度系数
+b_min             电量安全阈值
+```
+
+路径参数：
+
+```text
+tau_kq            AMR k 走候选路径 q 的实际通行时间
+c_q               候选路径 q 的路径成本
+g_kq              AMR k 走候选路径 q 的耗电量
+X_q(r)            路径 q 在采样偏移 r 处的二维位置
+rho               AMR footprint 半径
+sigma             安全裕量
+```
+
+决策变量：
+
+```text
+x_ki in {0,1}     任务 i 是否分配给 AMR k
+y_kij in {0,1}    在 AMR k 上任务 j 是否紧接任务 i 后执行
+z_kijq in {0,1}   AMR k 从任务 i 的送货点到任务 j 的取货点是否选择路径 q
+u_kiq in {0,1}    AMR k 执行任务 i 的 P_i -> D_i 是否选择路径 q
+S_i >= 0          任务 i 的开始取货服务时间
+C_i >= 0          任务 i 的完成送货时间
+T_i >= 0          任务 i 的延期时间
+L_i in {0,1}      任务 i 是否延期
+Cmax >= 0         系统最大完工时间
+H_i in {0,1}      任务 i 是否相对 P3 原计划换车
+Delta_i >= 0      任务 i 相对 P3 原开始时间的偏移量
+```
+
+任务唯一分配约束：
+
+```text
+sum_{k in K} x_ki = 1,                         for all i in J_free
+```
+
+AMR 序列约束。令 \(0_k\) 表示 AMR k 在滚动时域开始时的虚拟起点，令 \(\bar{0}_k\) 表示虚拟终点，则每台 AMR 的未来任务必须形成一条从 \(0_k\) 到 \(\bar{0}_k\) 的线性序列：
+
+```text
+sum_{j in J_free} y_k,0_k,j <= 1,              for all k in K
+sum_{i in J_free} y_k,i,bar0_k <= 1,           for all k in K
+sum_{j in J_free union {bar0_k}} y_kij = x_ki, for all k in K, i in J_free
+sum_{i in J_free union {0_k}} y_kij = x_kj,    for all k in K, j in J_free
+```
+
+可使用 MTZ 顺序变量 \(o_{ki}\) 消除子回路：
+
+```text
+o_kj >= o_ki + 1 - M(1 - y_kij),               for all k in K, i,j in J_free
+```
+
+路径选择约束。虚拟终点只表示任务序列结束，不需要实际移动路径；其他相邻任务弧必须选择 P1 候选路径：
+
+```text
+sum_{q in Q_{D_i,P_j}} z_kijq = y_kij,         for all k in K, i,j in J_free
+sum_{q in Q_{n_k,P_j}} z_k,0_k,j,q = y_k,0_k,j,for all k in K, j in J_free
+sum_{q in Q_{P_i,D_i}} u_kiq = x_ki,           for all k in K, i in J_free
+```
+
+这表示 P4 只能从 P1 `mixed` 候选路径库中选路径，不能临时创造新路径。
+
+时间递推约束：
+
+```text
+S_i >= e_i,                                    for all i in J_free
+C_i >= S_i + s_i + sum_q tau_kq u_kiq - M(1 - x_ki),
+                                                  for all k in K, i in J_free
+S_j >= C_i + sum_q tau_kq z_kijq - M(1 - y_kij),
+                                                  for all k in K, i,j in J_free
+S_j >= a_k + sum_q tau_kq z_k,0_k,j,q - M(1 - y_k,0_k,j),
+                                                  for all k in K, j in J_free
+Cmax >= C_i,                                  for all i in J_free
+```
+
+延期软约束：
+
+```text
+T_i >= C_i - l_i,                              for all i in J_free
+T_i >= 0,                                      for all i in J_free
+T_i <= M L_i,                                  for all i in J_free
+```
+
+电量约束。基础层不插入充电任务，因此每台 AMR 在滚动时域内的耗电不能使电量低于安全阈值：
+
+```text
+sum_{i,j,q} g_kq z_kijq
++ sum_{i,q} g_kq u_kiq
++ sum_i service_energy_i x_ki
+<= b_k - b_min,                                for all k in K
+```
+
+动态封锁约束。若路径 \(q\) 的采样点 \(X_q(r)\) 与封锁区域 \(B_m\) 相交，封锁时间窗为 \([\alpha_m,\beta_m]\)，则该采样点的绝对通过时间必须避开封锁窗口：
+
+```text
+departure(q) + r <= alpha_m + M h
+departure(q) + r >= beta_m  - M(1 - h)
+h in {0,1}
+```
+
+AMR 延误窗口约束。若 AMR k 在 \([\alpha,\beta]\) 内不可用，则其任务执行区间不能与该窗口重叠：
+
+```text
+C_i <= alpha + M h_ki
+S_i >= beta  - M(1 - h_ki)
+h_ki in {0,1}
+```
+
+二维轨迹 footprint 冲突约束。对任意潜在冲突对 \(((k,q,r),(k',q',r')) in Omega\)，若
+
+```text
+||X_q(r) - X_q'(r')|| < 2 rho + sigma
+```
+
+则两者在时间上必须错开：
+
+```text
+departure(k,q)  + r  + epsilon <= departure(k',q') + r' + M h
+departure(k',q') + r' + epsilon <= departure(k,q)  + r  + M(1 - h)
+h in {0,1}
+```
+
+稳定性建模。设 P3 原计划中任务 i 的 AMR 为 \(k_i^0\)，开始时间为 \(S_i^0\)：
+
+```text
+H_i >= x_ki,                                   for all k != k_i^0
+Delta_i >= S_i - S_i^0
+Delta_i >= S_i^0 - S_i
+```
+
+目标函数采用字典序目标规划，而不是单一加权和：
+
+```text
+min lex(F0, F1a, F1b, F2, F3, F4)
 ```
 
 其中：
 
 ```text
-F2 = 30 * priority_delay
-   + 20 * total_delay
-   + 5  * Cmax
-
-F3 = 2  * empty_cost
-   + 10 * load_balance_penalty
-   + 1  * total_energy_used
+F0  = hard_violation_count
+F1a = sum_i w_i L_i
+F1b = sum_i L_i
+F2  = 30 sum_i w_i T_i
+    + 20 sum_i T_i
+    + 5 Cmax
+F3  = 2 sum_{k,i,j,q} c_q z_kijq
+    + 10 (max_k load_k - min_k load_k)
+    + sum energy
+F4  = lambda_1 sum_i H_i
+    + lambda_2 sum_i Delta_i
 ```
 
-`stability_penalty` 表示相对 P3 原计划的扰动代价，包括换车和开始时间偏移。这个项让 P4 更接近滚动重调度的常见原则：只在必要时改变未来计划，避免为了局部成本收益大幅推翻原执行方案。
+因此，数学意义上的 P4 是：在 P1 给定的候选路径集合上，对动态事件后的未固定任务集合 \(J_free\)，联合决定任务分配、任务顺序、候选路径选择和开始完成时间；在满足路径存在、电量、时间、封锁、延误和二维轨迹无冲突等硬约束的前提下，按字典序目标规划最小化延期、完工时间、路径成本、能耗、负载不均衡和对原计划的扰动。
 
 ### 与目标规划和 MILP 的关系
 
