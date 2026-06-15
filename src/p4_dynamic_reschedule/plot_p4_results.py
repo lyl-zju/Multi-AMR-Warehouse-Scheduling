@@ -8,6 +8,7 @@ Outputs:
     outputs/p4/p4_gantt_events.png
     outputs/p4/p4_trajectory_map.png
     outputs/p4/p4_event_impact_metrics.png
+    outputs/p4/p4_method_comparison.png
     outputs/p4/p4_dynamic_reschedule.gif
 """
 
@@ -76,6 +77,12 @@ def read_csv(path, **kwargs):
     return pd.read_csv(path, **kwargs)
 
 
+def read_optional_csv(path, **kwargs):
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path, **kwargs)
+
+
 def to_num(series):
     return pd.to_numeric(series, errors="coerce")
 
@@ -99,6 +106,7 @@ def load_inputs():
         "impact": read_csv(P4_DIR / "dynamic_event_impact.csv"),
         "summary": read_csv(P4_DIR / "reschedule_summary.csv"),
         "trajectory": read_csv(P4_DIR / "trajectory_schedule.csv"),
+        "method_comparison": read_optional_csv(P4_DIR / "p4_method_comparison.csv"),
     }
 
 
@@ -525,6 +533,60 @@ def plot_event_impact_metrics(events, impact, summary, out_path):
     plt.close(fig)
 
 
+def plot_method_comparison(method_comparison, out_path):
+    if method_comparison.empty:
+        return
+
+    table = method_comparison.copy()
+    display = pd.DataFrame({
+        "方法": table["method"].astype(str),
+        "新增延期": to_num(table["added_delay"]).map(lambda value: f"{value:.2f}"),
+        "扰动任务数": to_num(table["disturbed_tasks"]).fillna(0).astype(int).astype(str),
+        "冲突消解成功率": to_num(table["conflict_resolution_success_rate"]).map(lambda value: f"{value * 100:.0f}%"),
+        "重排时间/s": to_num(table["reschedule_time"]).map(lambda value: f"{value:.2f}"),
+    })
+
+    fig, ax = plt.subplots(figsize=(13.5, 3.8), dpi=160)
+    ax.axis("off")
+    ax.set_title("P4 dynamic rescheduling method comparison", loc="left", fontsize=13, pad=14)
+
+    mpl_table = ax.table(
+        cellText=display.values,
+        colLabels=display.columns,
+        cellLoc="center",
+        colLoc="center",
+        loc="center",
+        colWidths=[0.23, 0.17, 0.18, 0.24, 0.18],
+    )
+    mpl_table.auto_set_font_size(False)
+    mpl_table.set_fontsize(10)
+    mpl_table.scale(1.0, 1.55)
+
+    for (row, col), cell in mpl_table.get_celld().items():
+        cell.set_edgecolor("#d1d5db")
+        cell.set_linewidth(0.75)
+        if row == 0:
+            cell.set_facecolor("#f3f4f6")
+            cell.set_text_props(weight="bold", color="#111827")
+        else:
+            success = float(table.iloc[row - 1]["conflict_resolution_success_rate"])
+            cell.set_facecolor("#f7fbf7" if success >= 1.0 else "#fff7ed")
+            if col == 3:
+                cell.set_text_props(color="#166534" if success >= 1.0 else "#c2410c", weight="bold")
+
+    ax.text(
+        0.0,
+        0.08,
+        "Higher success rate is preferred first; added delay and disturbed tasks are secondary comparison metrics.",
+        transform=ax.transAxes,
+        fontsize=8.5,
+        color="#4b5563",
+        ha="left",
+    )
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
 def build_amr_series(trajectory):
     series = {}
     for amr_id, group in trajectory.groupby("amr_id"):
@@ -802,6 +864,7 @@ def main():
         OUT_DIR / "p4_gantt_events.png",
         OUT_DIR / "p4_trajectory_map.png",
         OUT_DIR / "p4_event_impact_metrics.png",
+        OUT_DIR / "p4_method_comparison.png",
         OUT_DIR / "p4_dynamic_reschedule.gif",
     ]
 
@@ -829,6 +892,10 @@ def main():
         data["summary"],
         outputs[2],
     )
+    plot_method_comparison(
+        data["method_comparison"],
+        outputs[3],
+    )
     render_dynamic_reschedule_gif(
         data["nodes"],
         data["zones"],
@@ -837,7 +904,7 @@ def main():
         data["reschedule"],
         data["trajectory"],
         data["summary"],
-        outputs[3],
+        outputs[4],
         fps=args.fps,
         speedup=args.speedup,
     )

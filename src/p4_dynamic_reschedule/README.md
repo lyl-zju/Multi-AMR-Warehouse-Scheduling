@@ -30,6 +30,7 @@ data/processed/p4/reschedule_result.csv
 data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
 data/processed/p4/trajectory_schedule.csv
+data/processed/p4/p4_method_comparison.csv
 ```
 
 可视化输出：
@@ -38,6 +39,7 @@ data/processed/p4/trajectory_schedule.csv
 outputs/p4/p4_gantt_events.png
 outputs/p4/p4_trajectory_map.png
 outputs/p4/p4_event_impact_metrics.png
+outputs/p4/p4_method_comparison.png
 outputs/p4/p4_dynamic_reschedule.gif
 ```
 
@@ -47,8 +49,21 @@ outputs/p4/p4_dynamic_reschedule.gif
 p4_gantt_events.png          对比 P3 基准计划和 P4 重排后计划，并叠加动态事件时间窗
 p4_trajectory_map.png        在仓库平面图上展示 P4 最终轨迹、封锁区、新增任务和任务顺序
 p4_event_impact_metrics.png  展示动态事件影响、可行性检查和目标函数指标
+p4_method_comparison.png     对比全局重排、仅等待、滚动时域重排的新增延期、扰动任务数、冲突消解率和计算时间
 p4_dynamic_reschedule.gif    沿用 P2/P3 的 footprint 动画风格，动态展示封锁、延误、新任务释放和最终重排轨迹
 ```
+
+## 方法对比输出
+
+`p4_method_comparison.csv` 对同一组动态事件同时评估三种策略：
+
+```text
+全局重排       对事件后的受影响任务池做后悔值插入和局部搜索，作为激进重优化基线
+仅等待         保持原 AMR 分配和任务顺序，只通过等待和新任务末端插入修复扰动
+滚动时域重排   对封锁/延误保持局部顺序并加等待，对新增任务做滚动窗口位置插入
+```
+
+表中 `冲突消解成功率` 先于延期和扰动任务数判定方案质量：若最终仍有轨迹冲突、封锁违规或 AMR 延误违规，则该方法在当前场景下记为 0。
 
 ## 动态事件
 
@@ -65,8 +80,8 @@ P4 以动态事件时间为滚动时域边界：
 ```text
 1. 已经进入执行轨迹的任务固定，不再重排；
 2. area_block 会检查 P3/P4 轨迹 footprint 是否进入封锁矩形；
-3. amr_delay 会识别与延误时间窗重叠的任务；
-4. new_task 会把新增任务插入未来计划；
+3. amr_delay 会识别延误 AMR 在事件后的未来任务尾段；
+4. new_task 会把新增任务插入未来计划，并与仅等待/全局重排策略对比；
 5. 受影响任务及其同车后续尾段进入重排池；
 6. 重排时只从 P1 mixed 候选路径中选择路径；
 7. 目标按硬约束、延期服务质量、完工时间、路径成本、负载均衡、电量和稳定性字典序比较；

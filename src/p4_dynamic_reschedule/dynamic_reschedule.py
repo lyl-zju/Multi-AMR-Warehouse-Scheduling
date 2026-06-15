@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from math import hypot
 from pathlib import Path
 import sys
+import time
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,15 @@ from schedule_and_detect_conflicts import (  # noqa: E402
 
 
 RESCHEDULE_METHOD = "rolling_horizon_regret_insertion_local_search"
+STRATEGY_LABELS = {
+    "global_replan": "全局重排",
+    "wait_only": "仅等待",
+    "rolling_horizon": "滚动时域重排",
+}
+WAIT_ONLY_SEGMENTS = {
+    "repair_wait_at_node",
+    "block_wait_at_node",
+}
 LOADED_SPEED_FACTOR = 0.90
 EMPTY_ENERGY_RATE = 1.00
 LOADED_ENERGY_RATE = 1.20
@@ -44,6 +54,7 @@ MAX_BLOCK_SHIFT_ATTEMPTS = 8
 MAX_LOCAL_SEARCH_ITERATIONS = 10
 MAX_CONFLICT_REPAIR_ITERATIONS = 30
 WAIT_OPTIONS = (1.0, 2.0, 5.0, 8.0, 12.0, 20.0)
+REPLAN_HORIZON_SLACK = 1e-6
 
 
 @dataclass(frozen=True)
@@ -791,10 +802,11 @@ def amr_delay_impact(event, schedule):
     affected = subset[
         ((task_start < end) & (task_finish > start))
         | ((task_start >= start) & (task_start < end))
+        | (task_finish >= start)
     ][["task_id", "amr_id"]].drop_duplicates()
     if affected.empty:
-        return affected, "no task overlaps delayed AMR window"
-    return affected, f"AMR {event.target_id} delayed from {start:g} to {end:g}"
+        return affected, "no task exists after delayed AMR window"
+    return affected, f"AMR {event.target_id} delayed from {start:g} to {end:g}; future suffix is replanning-relevant"
 
 
 def dynamic_task_from_event(event):
@@ -997,7 +1009,9 @@ def fixed_task_ids_at_horizon(current_schedule, current_trajectory, horizon):
     if not current_trajectory.empty:
         trajectory = current_trajectory.copy()
         trajectory["absolute_time"] = pd.to_numeric(trajectory["absolute_time"], errors="coerce")
-        started = trajectory[trajectory["absolute_time"] < horizon]
+        segment_type = trajectory["segment_type"].astype(str)
+        active_segments = trajectory[~segment_type.isin(WAIT_ONLY_SEGMENTS)]
+        started = active_segments[active_segments["absolute_time"] < horizon]
         fixed.update(started["task_id"].astype(str))
     fallback = current_schedule[pd.to_numeric(current_schedule["start_time"], errors="coerce") < horizon]
     fixed.update(fallback["task_id"].astype(str))
@@ -1043,7 +1057,9 @@ def impacted_tasks_for_event(event, current_schedule, current_trajectory):
 
 def rolling_pool_tasks(future_schedule, impacted_tasks, event):
     if event.event_type == "new_task":
-        return {str(event.target_id)}
+        pool = set(future_schedule["task_id"].astype(str))
+        pool.add(str(event.target_id))
+        return pool
     if not impacted_tasks:
         return set()
 
@@ -1108,6 +1124,42 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
             if best is None or item[:3] < best[:3]:
                 best = item
     return best[3]
+
+
+def append_new_task_to_best_end(new_task_id, future_schedule, fixed_trajectory, amr_states, tasks, amrs, path_cost,
+                                trajectory_samples, trajectory_by_uid, active_blocks, original_lookup):
+    base_sequences = future_sequences_from_schedule(future_schedule, amrs)
+    best = None
+    for amr_id in sorted(amrs):
+        candidate = copy_sequences(base_sequences)
+        candidate[amr_id] = list(candidate[amr_id]) + [new_task_id]
+        metrics, score, _schedule, _trajectory = evaluate_sequences(
+            candidate,
+            amr_states,
+            tasks,
+            amrs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            original_lookup,
+        )
+        candidate_future_trajectory = schedule_sequences(
+            candidate,
+            amr_states,
+            tasks,
+            amrs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            build_trajectory=True,
+        )[1]
+        conflict_count = len(detect_trajectory_conflicts(combine_trajectory(fixed_trajectory, candidate_future_trajectory)))
+        item = (conflict_count, metrics, score, candidate)
+        if best is None or item[:3] < best[:3]:
+            best = item
+    return best[3] if best is not None else base_sequences
 
 
 def run_rolling_reschedule(schedule, trajectory, dynamic_events, tasks, amrs, path_cost, trajectory_samples):
@@ -1241,6 +1293,192 @@ def run_rolling_reschedule(schedule, trajectory, dynamic_events, tasks, amrs, pa
         current_schedule = combine_schedule(fixed_schedule, new_future_schedule)
         current_trajectory = new_trajectory
         update_change_maps(previous_schedule, current_schedule, pool_task_ids, event, task_events, task_reasons)
+
+    event_impact = pd.DataFrame(impact_rows)
+    return current_schedule, current_trajectory, event_impact, task_events, task_reasons, original_lookup
+
+
+def plan_strategy_sequences(strategy, event, future_schedule, impacted_tasks, task_specs, amr_states, amrs, path_cost,
+                            trajectory_samples, trajectory_by_uid, active_blocks, fixed_trajectory, original_lookup):
+    future_task_ids = set(future_schedule["task_id"].astype(str))
+    if strategy == "wait_only":
+        if event.event_type == "new_task":
+            pool_task_ids = set(future_task_ids)
+            pool_task_ids.add(str(event.target_id))
+            sequences = append_new_task_to_best_end(
+                str(event.target_id),
+                future_schedule,
+                fixed_trajectory,
+                amr_states,
+                task_specs,
+                amrs,
+                path_cost,
+                trajectory_samples,
+                trajectory_by_uid,
+                active_blocks,
+                original_lookup,
+            )
+            return pool_task_ids, sequences
+        pool_task_ids = rolling_pool_tasks(future_schedule, impacted_tasks, event)
+        if not pool_task_ids:
+            return set(), None
+        return pool_task_ids, future_sequences_from_schedule(
+            future_schedule[future_schedule["task_id"].astype(str).isin(pool_task_ids)],
+            amrs,
+        )
+
+    if strategy == "global_replan":
+        if event.event_type == "new_task":
+            pool_task_ids = set(future_task_ids)
+            pool_task_ids.add(str(event.target_id))
+        else:
+            pool_task_ids = rolling_pool_tasks(future_schedule, impacted_tasks, event)
+        if not pool_task_ids:
+            return set(), None
+        sequences = solve_by_regret_insertion(
+            sorted(pool_task_ids),
+            amr_states,
+            task_specs,
+            amrs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            original_lookup,
+        )
+        return pool_task_ids, sequences
+
+    if event.event_type == "new_task":
+        pool_task_ids = set(future_task_ids)
+        pool_task_ids.add(str(event.target_id))
+        sequences = insert_new_task_by_position(
+            str(event.target_id),
+            future_schedule,
+            fixed_trajectory,
+            amr_states,
+            task_specs,
+            amrs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            original_lookup,
+        )
+        return pool_task_ids, sequences
+
+    pool_task_ids = rolling_pool_tasks(future_schedule, impacted_tasks, event)
+    if not pool_task_ids:
+        return set(), None
+    return pool_task_ids, future_sequences_from_schedule(
+        future_schedule[future_schedule["task_id"].astype(str).isin(pool_task_ids)],
+        amrs,
+    )
+
+
+def run_dynamic_reschedule_strategy(schedule, trajectory, dynamic_events, tasks, amrs, path_cost, trajectory_samples,
+                                    strategy="rolling_horizon"):
+    current_schedule = normalize_p3_schedule(schedule)
+    current_trajectory = trajectory.copy()
+    task_specs = build_task_specs(tasks)
+    amr_specs = build_amr_specs(amrs)
+    original_lookup = build_original_lookup(current_schedule)
+    trajectory_by_uid = build_trajectory_lookup(trajectory_samples)
+    active_blocks = []
+    delay_windows = []
+    impact_rows = []
+    task_events = defaultdict(list)
+    task_reasons = defaultdict(list)
+
+    events = sorted(list(dynamic_events.itertuples(index=False)), key=event_time)
+    for event in events:
+        horizon = float(event_time(event))
+        previous_schedule = current_schedule.copy()
+
+        if event.event_type == "area_block":
+            block = event_to_area_block(event)
+            if block is not None:
+                active_blocks.append(block)
+            affected, reason = area_block_impact(event, current_trajectory)
+            for task_id in affected["task_id"].astype(str):
+                task_events[task_id].append(str(event.event_id))
+                task_reasons[task_id].append(f"area_block:{event.target_id}")
+            impact_rows.append(impact_row(event, affected, reason))
+        elif event.event_type == "amr_delay":
+            affected, reason = amr_delay_impact(event, current_schedule)
+            start = to_float(event.start_time)
+            end = to_float(event.end_time)
+            if start is not None and end is not None:
+                delay_windows.append({"amr_id": str(event.target_id), "start_time": start, "end_time": end})
+            for task_id in affected["task_id"].astype(str):
+                task_events[task_id].append(str(event.event_id))
+                task_reasons[task_id].append(f"amr_delay:{event.target_id}")
+            impact_rows.append(impact_row(event, affected, reason))
+        elif event.event_type == "new_task":
+            task = dynamic_task_from_event(event)
+            task_specs[task.task_id] = task
+            affected = pd.DataFrame([{"task_id": task.task_id, "amr_id": ""}])
+            task_events[task.task_id].append(str(event.event_id))
+            task_reasons[task.task_id].append("new_task_released")
+            impact_rows.append(impact_row(event, affected, "new task released into rolling horizon"))
+        else:
+            affected = pd.DataFrame(columns=["task_id", "amr_id"])
+            impact_rows.append(impact_row(event, affected, "unsupported event type"))
+            continue
+
+        impacted = impacted_tasks_for_event(event, current_schedule, current_trajectory)
+        fixed_task_ids = fixed_task_ids_at_horizon(current_schedule, current_trajectory, horizon)
+        fixed_schedule = current_schedule[current_schedule["task_id"].astype(str).isin(fixed_task_ids)].copy()
+        future_schedule = current_schedule[~current_schedule["task_id"].astype(str).isin(fixed_task_ids)].copy()
+        fixed_keys = set(fixed_schedule["task_id"].astype(str))
+        fixed_trajectory = current_trajectory[current_trajectory["task_id"].astype(str).isin(fixed_keys)].copy()
+        amr_states = build_amr_states(fixed_schedule, amr_specs, horizon, delay_windows)
+
+        pool_task_ids, sequences = plan_strategy_sequences(
+            strategy,
+            event,
+            future_schedule,
+            impacted,
+            task_specs,
+            amr_states,
+            amr_specs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            fixed_trajectory,
+            original_lookup,
+        )
+        if not pool_task_ids or sequences is None:
+            continue
+
+        preserved = future_schedule[~future_schedule["task_id"].astype(str).isin(pool_task_ids)].copy()
+        if not preserved.empty:
+            fixed_schedule = combine_schedule(fixed_schedule, preserved)
+
+        new_future_schedule, new_trajectory, _conflicts, _repair_waits = repair_conflicts(
+            sequences,
+            amr_states,
+            task_specs,
+            amr_specs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            original_lookup,
+            fixed_trajectory,
+        )
+        current_schedule = combine_schedule(fixed_schedule, new_future_schedule)
+        current_trajectory = new_trajectory
+        update_change_maps(previous_schedule, current_schedule, pool_task_ids, event, task_events, task_reasons)
+
+        if event.event_type == "new_task":
+            rows = current_schedule[current_schedule["task_id"].astype(str) == str(event.target_id)]
+            if not rows.empty:
+                impact_rows[-1]["affected_amrs"] = str(rows.iloc[0]["amr_id"])
+        elif strategy == "wait_only":
+            rows = current_schedule[current_schedule["task_id"].astype(str).isin(pool_task_ids)]
+            if not rows.empty:
+                impact_rows[-1]["affected_amrs"] = ";".join(sorted(set(rows["amr_id"].astype(str))))
 
     event_impact = pd.DataFrame(impact_rows)
     return current_schedule, current_trajectory, event_impact, task_events, task_reasons, original_lookup
@@ -1414,25 +1652,93 @@ def build_summary(original_schedule, final_schedule, final_trajectory, event_imp
     ])
 
 
+def summary_metric(summary, metric, default=0.0):
+    rows = summary[summary["metric"].astype(str) == metric]
+    if rows.empty:
+        return default
+    value = rows.iloc[0]["value"]
+    return float(value) if is_present(value) else default
+
+
+def build_method_comparison(strategy_outputs, original_schedule):
+    original = normalize_p3_schedule(original_schedule)
+    original_delay = float(pd.to_numeric(original["delay"], errors="coerce").fillna(0.0).sum())
+    rows = []
+    for strategy in ("global_replan", "wait_only", "rolling_horizon"):
+        output = strategy_outputs[strategy]
+        summary = output["summary"]
+        reschedule_result = output["reschedule_result"]
+        unresolved = summary_metric(summary, "unresolved_trajectory_conflict_count")
+        block_violations = summary_metric(summary, "blocked_area_violation_count")
+        delay_violations = summary_metric(summary, "delayed_amr_violation_count")
+        hard_violations = unresolved + block_violations + delay_violations
+        total_delay = summary_metric(summary, "total_delay")
+        disturbed = int((pd.to_numeric(reschedule_result["changed"], errors="coerce").fillna(0) > 0).sum())
+        rows.append({
+            "method_id": strategy,
+            "method": STRATEGY_LABELS[strategy],
+            "added_delay": rounded(max(0.0, total_delay - original_delay)),
+            "disturbed_tasks": disturbed,
+            "conflict_resolution_success_rate": rounded(1.0 if hard_violations == 0 else 0.0),
+            "reschedule_time": rounded(output["elapsed_seconds"]),
+            "total_delay": rounded(total_delay),
+            "late_count": int(summary_metric(summary, "late_count")),
+            "priority_late_count": rounded(summary_metric(summary, "priority_late_count")),
+            "Cmax": rounded(summary_metric(summary, "Cmax")),
+            "F2": rounded(summary_metric(summary, "F2")),
+            "F3": rounded(summary_metric(summary, "F3")),
+            "changed_tasks": int(summary_metric(summary, "ChangedTasks")),
+            "new_tasks": int(summary_metric(summary, "NewTasks")),
+            "blocked_area_violation_count": int(block_violations),
+            "delayed_amr_violation_count": int(delay_violations),
+            "unresolved_trajectory_conflict_count": int(unresolved),
+        })
+    return pd.DataFrame(rows)
+
+
 def main():
     schedule, trajectory_schedule, dynamic_events, tasks, amrs, path_cost, trajectory_samples = load_inputs()
-    final_schedule, final_trajectory, event_impact, task_events, task_reasons, original_lookup = run_rolling_reschedule(
-        schedule,
-        trajectory_schedule,
-        dynamic_events,
-        tasks,
-        amrs,
-        path_cost,
-        trajectory_samples,
-    )
-    reschedule_result = build_reschedule_result(final_schedule, original_lookup, task_events, task_reasons)
-    summary = build_summary(schedule, final_schedule, final_trajectory, event_impact, reschedule_result, dynamic_events)
+    strategy_outputs = {}
+    for strategy in ("global_replan", "wait_only", "rolling_horizon"):
+        start_clock = time.perf_counter()
+        final_schedule, final_trajectory, event_impact, task_events, task_reasons, original_lookup = (
+            run_dynamic_reschedule_strategy(
+                schedule,
+                trajectory_schedule,
+                dynamic_events,
+                tasks,
+                amrs,
+                path_cost,
+                trajectory_samples,
+                strategy=strategy,
+            )
+        )
+        elapsed = time.perf_counter() - start_clock
+        reschedule_result = build_reschedule_result(final_schedule, original_lookup, task_events, task_reasons)
+        summary = build_summary(schedule, final_schedule, final_trajectory, event_impact, reschedule_result,
+                                dynamic_events)
+        strategy_outputs[strategy] = {
+            "final_schedule": final_schedule,
+            "final_trajectory": final_trajectory,
+            "event_impact": event_impact,
+            "reschedule_result": reschedule_result,
+            "summary": summary,
+            "elapsed_seconds": elapsed,
+        }
+
+    selected = strategy_outputs["rolling_horizon"]
+    final_trajectory = selected["final_trajectory"]
+    event_impact = selected["event_impact"]
+    reschedule_result = selected["reschedule_result"]
+    summary = selected["summary"]
+    method_comparison = build_method_comparison(strategy_outputs, schedule)
 
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
     reschedule_result.to_csv(PROCESSED_DATA_DIR / "reschedule_result.csv", index=False)
     event_impact.to_csv(PROCESSED_DATA_DIR / "dynamic_event_impact.csv", index=False)
     summary.to_csv(PROCESSED_DATA_DIR / "reschedule_summary.csv", index=False)
     final_trajectory.to_csv(PROCESSED_DATA_DIR / "trajectory_schedule.csv", index=False)
+    method_comparison.to_csv(PROCESSED_DATA_DIR / "p4_method_comparison.csv", index=False)
 
     conflict_count = int(summary.loc[summary["metric"] == "unresolved_trajectory_conflict_count", "value"].iloc[0])
     block_count = int(summary.loc[summary["metric"] == "blocked_area_violation_count", "value"].iloc[0])
@@ -1446,6 +1752,7 @@ def main():
     print(f"Saved: {PROCESSED_DATA_DIR / 'dynamic_event_impact.csv'}")
     print(f"Saved: {PROCESSED_DATA_DIR / 'reschedule_summary.csv'}")
     print(f"Saved: {PROCESSED_DATA_DIR / 'trajectory_schedule.csv'}")
+    print(f"Saved: {PROCESSED_DATA_DIR / 'p4_method_comparison.csv'}")
 
 
 if __name__ == "__main__":

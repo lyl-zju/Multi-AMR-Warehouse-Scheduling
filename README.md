@@ -69,9 +69,11 @@ data/processed/p4/reschedule_result.csv
 data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
 data/processed/p4/trajectory_schedule.csv
+data/processed/p4/p4_method_comparison.csv
 outputs/p4/p4_gantt_events.png
 outputs/p4/p4_trajectory_map.png
 outputs/p4/p4_event_impact_metrics.png
+outputs/p4/p4_method_comparison.png
 outputs/p4/p4_dynamic_reschedule.gif
 ```
 
@@ -97,4 +99,4 @@ outputs/p4/p4_dynamic_reschedule.gif
 | `amr_delay` | 某台 AMR 在时间窗内延误 |
 | `new_task` | 运行中释放新任务 |
 
-P4 当前执行动态滚动重排：它读取 P3 的无冲突基准计划，在 `area_block`、`amr_delay`、`new_task` 事件到来后冻结已执行任务，对未来任务做后悔值插入、局部搜索、候选路径重评估和轨迹冲突修复，并输出重排结果、验收指标和可视化分析图。
+P4 当前执行动态滚动重排：它读取 P3 的无冲突基准计划，在 `area_block`、`amr_delay`、`new_task` 事件到来后冻结已执行任务，对未来任务做局部等待修复、新任务滚动插入、候选路径重评估和轨迹冲突修复，并额外比较全局重排、仅等待、滚动时域重排三种策略。
