@@ -18,6 +18,9 @@ SAFETY_MARGIN = 0.10
 TRAJECTORY_SAMPLE_STEP = 0.10
 NODE_CAPACITY_TYPES = ("P", "SORT", "OUT")
 WAIT_OPTIONS = (1.0, 2.0, 5.0, 8.0, 12.0, 20.0)
+MID_WAIT_LEAD_TIMES = (0.8, 1.0, 1.5, 2.0, 3.0, 4.0)
+WAIT_COMPRESSION_STEP = 0.5
+WAIT_COMPRESSION_MAX_PASSES = 1
 MAX_REPAIR_ITERATIONS = 40
 LOADED_SPEED_FACTOR = 0.90
 EMPTY_ENERGY_RATE = 1.00
@@ -579,6 +582,7 @@ def mid_wait_candidates(conflict, state, schedule_result):
     conflict_time = float(conflict["time"])
     current = apply_reroutes_to_assignment(state.assignment, state.reroutes)
     options = []
+    seen = set()
     schedule_lookup = schedule_result.set_index(["amr_id", "task_id", "sequence_order"])
     for row in current.itertuples(index=False):
         row_key = (str(row.amr_id), str(row.task_id), int(row.sequence_order))
@@ -595,9 +599,14 @@ def mid_wait_candidates(conflict, state, schedule_result):
             segment_start = sched["transition_start_time"] if segment_type == "transition" else sched["loaded_start_time"]
             if not is_present(segment_start):
                 continue
-            offset = float(conflict_time) - float(segment_start) - 0.2
-            offset = min(max(offset, 0.1), max(0.1, float(duration) - 0.1))
-            options.append((task_key(row.amr_id, row.task_id, row.sequence_order), segment_type, str(path_uid), offset))
+            for lead_time in MID_WAIT_LEAD_TIMES:
+                offset = float(conflict_time) - float(segment_start) - float(lead_time)
+                offset = min(max(offset, 0.1), max(0.1, float(duration) - 0.1))
+                option_key = (row_key, segment_type, str(path_uid), round(offset, 3))
+                if option_key in seen:
+                    continue
+                seen.add(option_key)
+                options.append((task_key(row.amr_id, row.task_id, row.sequence_order), segment_type, str(path_uid), offset))
     return options
 
 def resequence_candidates(conflict, state, path_cost):
@@ -670,6 +679,120 @@ def evaluate_state(state, trajectory_samples):
     schedule, trajectory = build_schedule_from_state(state, trajectory_samples)
     conflicts = detect_trajectory_conflicts(trajectory)
     return schedule, trajectory, conflicts, objective_value(schedule, conflicts, state)
+
+
+def quantize_wait(value):
+    return round(max(0.0, float(value)) / WAIT_COMPRESSION_STEP) * WAIT_COMPRESSION_STEP
+
+
+def zero_conflict_state(state, trajectory_samples):
+    schedule, trajectory, conflicts, _objective = evaluate_state(state, trajectory_samples)
+    return conflicts.empty, schedule, trajectory, conflicts
+
+
+def set_repair_wait(state, wait_key, wait_value):
+    candidate = state.copy()
+    candidate.repair_waits[wait_key] = round(quantize_wait(wait_value), 6)
+    return candidate
+
+
+def set_mid_path_wait(state, wait_key, wait_value):
+    candidate = state.copy()
+    wait = dict(candidate.mid_path_waits[wait_key])
+    wait["wait_amount"] = round(quantize_wait(wait_value), 6)
+    candidate.mid_path_waits[wait_key] = wait
+    return candidate
+
+
+def minimize_wait_amount(state, trajectory_samples, wait_key, current_wait, setter):
+    current_wait = round(quantize_wait(current_wait), 6)
+    if current_wait <= WAIT_COMPRESSION_STEP + 1e-9:
+        return state, None
+
+    zero_state = setter(state, wait_key, 0.0)
+    feasible, schedule, trajectory, conflicts = zero_conflict_state(zero_state, trajectory_samples)
+    if feasible:
+        return zero_state, (schedule, trajectory, conflicts)
+
+    low = 0.0
+    high = current_wait
+    while high - low > WAIT_COMPRESSION_STEP + 1e-9:
+        mid = round(quantize_wait((low + high) / 2.0), 6)
+        if mid <= low + 1e-9:
+            mid = round(low + WAIT_COMPRESSION_STEP, 6)
+        if mid >= high - 1e-9:
+            break
+        candidate = setter(state, wait_key, mid)
+        feasible, schedule, trajectory, conflicts = zero_conflict_state(candidate, trajectory_samples)
+        if feasible:
+            high = mid
+            best_payload = (schedule, trajectory, conflicts)
+        else:
+            low = mid
+
+    best_wait = round(quantize_wait(high), 6)
+    best_state = setter(state, wait_key, best_wait)
+    feasible, schedule, trajectory, conflicts = zero_conflict_state(best_state, trajectory_samples)
+    if not feasible:
+        return state, None
+    best_payload = (schedule, trajectory, conflicts)
+
+    if best_wait < current_wait - 1e-9:
+        return best_state, best_payload
+    return state, None
+
+
+def compress_zero_conflict_waits(state, trajectory_samples):
+    feasible, schedule, trajectory, conflicts = zero_conflict_state(state, trajectory_samples)
+    if not feasible:
+        return state, schedule, trajectory, conflicts
+
+    current_state = state.copy()
+    current_payload = (schedule, trajectory, conflicts)
+    for _pass in range(WAIT_COMPRESSION_MAX_PASSES):
+        changed = False
+        repair_items = sorted(
+            [(key, wait) for key, wait in current_state.repair_waits.items() if wait > WAIT_COMPRESSION_STEP + 1e-9],
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        for wait_key, wait_value in repair_items:
+            current_state, payload = minimize_wait_amount(
+                current_state,
+                trajectory_samples,
+                wait_key,
+                wait_value,
+                set_repair_wait,
+            )
+            if payload is not None:
+                current_payload = payload
+                changed = True
+
+        mid_wait_items = sorted(
+            [
+                (key, float(wait.get("wait_amount", 0.0)))
+                for key, wait in current_state.mid_path_waits.items()
+                if float(wait.get("wait_amount", 0.0)) > WAIT_COMPRESSION_STEP + 1e-9
+            ],
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        for wait_key, wait_value in mid_wait_items:
+            current_state, payload = minimize_wait_amount(
+                current_state,
+                trajectory_samples,
+                wait_key,
+                wait_value,
+                set_mid_path_wait,
+            )
+            if payload is not None:
+                current_payload = payload
+                changed = True
+
+        if not changed:
+            break
+
+    return current_state, *current_payload
 
 
 def run_repair_mode(assignment, trajectory_samples, path_cost, mode):
@@ -782,6 +905,21 @@ def run_repair_mode(assignment, trajectory_samples, path_cost, mode):
         "objective": objective_value(schedule, conflicts, state),
     }
 
+
+def compress_repair_result(result, trajectory_samples):
+    if not result["conflicts"].empty:
+        return result
+    state, schedule, trajectory, conflicts = compress_zero_conflict_waits(result["state"], trajectory_samples)
+    updated = dict(result)
+    updated.update({
+        "state": state,
+        "schedule": schedule,
+        "trajectory": trajectory,
+        "conflicts": conflicts,
+        "objective": objective_value(schedule, conflicts, state),
+    })
+    return updated
+
 def repair_conflicts(assignment, trajectory_samples, path_cost=None):
     if path_cost is None:
         path_cost = pd.read_csv(p1_data_dir(DEFAULT_P1_ALGORITHM) / "path_cost.csv")
@@ -856,7 +994,12 @@ def run_all_modes(assignment, trajectory_samples, path_cost):
     wait = run_repair_mode(assignment, trajectory_samples, path_cost, "wait")
     wait_reroute = run_repair_mode(assignment, trajectory_samples, path_cost, "wait_reroute")
     wait_reroute_resequence = run_repair_mode(assignment, trajectory_samples, path_cost, "wait_reroute_resequence")
-    repair_results = [wait, wait_reroute, wait_reroute_resequence]
+    repair_results = [
+        compress_repair_result(wait, trajectory_samples),
+        compress_repair_result(wait_reroute, trajectory_samples),
+        compress_repair_result(wait_reroute_resequence, trajectory_samples),
+    ]
+    wait, wait_reroute, wait_reroute_resequence = repair_results
     selected = min(repair_results, key=lambda r: (len(r["conflicts"]), objective_value(r["schedule"], r["conflicts"], r["state"]), {"wait_reroute_resequence": 0, "wait_reroute": 1, "wait": 2}.get(r["mode"], 9)))
     return original, wait, wait_reroute, wait_reroute_resequence, selected
 
