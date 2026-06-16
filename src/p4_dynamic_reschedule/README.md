@@ -31,6 +31,7 @@ data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
 data/processed/p4/trajectory_schedule.csv
 data/processed/p4/p4_method_comparison.csv
+data/processed/p4/p4_weight_sensitivity.csv
 ```
 
 可视化输出：
@@ -40,16 +41,18 @@ outputs/p4/p4_gantt_events.png
 outputs/p4/p4_trajectory_map.png
 outputs/p4/p4_event_impact_metrics.png
 outputs/p4/p4_method_comparison.png
+outputs/p4/p4_weight_sensitivity.png
 outputs/p4/p4_dynamic_reschedule.gif
 ```
 
-三张图分别用于说明：
+这些图分别用于说明：
 
 ```text
 p4_gantt_events.png          对比 P3 基准计划和 P4 重排后计划，并叠加动态事件时间窗
 p4_trajectory_map.png        在仓库平面图上展示 P4 最终轨迹、封锁区、新增任务和任务顺序
 p4_event_impact_metrics.png  展示动态事件影响、可行性检查和目标函数指标
-p4_method_comparison.png     对比全局重排、仅等待、滚动时域重排的新增延期、扰动任务数、冲突消解率和计算时间
+p4_method_comparison.png     对比全局重排、仅等待、滚动时域重排的可行性、总延期、Cmax、F2 和相对仅等待的改进幅度
+p4_weight_sensitivity.png    对比服务等级优先、均衡权重、稳定性优先三种目标口径下的滚动时域重排结果
 p4_dynamic_reschedule.gif    沿用 P2/P3 的 footprint 动画风格，动态展示封锁、延误、新任务释放和最终重排轨迹
 ```
 
@@ -64,6 +67,26 @@ p4_dynamic_reschedule.gif    沿用 P2/P3 的 footprint 动画风格，动态展
 ```
 
 表中 `冲突消解成功率` 先于延期和扰动任务数判定方案质量：若最终仍有轨迹冲突、封锁违规或 AMR 延误违规，则该方法在当前场景下记为 0。
+
+当前一次完整运行的核心结果为：
+
+```text
+全局重排       冲突消解成功率 0%，总延期 123.60，Cmax 100.86，F2 10098.36
+仅等待         冲突消解成功率 100%，总延期 98.02，Cmax 82.84，F2 8527.39
+滚动时域重排   冲突消解成功率 100%，总延期 72.58，Cmax 71.60，F2 6164.07
+```
+
+因此，滚动时域重排的优势不是来自“比不可行解更好”，而是在与仅等待同样满足硬约束的可行解集合内继续优化时间效率。相对仅等待，当前滚动时域重排总延期降低 25.45，Cmax 降低 11.24，F2 降低约 27.7%，F3 降低约 16.2%。代价是计算时间更长：仅等待约 2.26s，滚动时域约 71.54s，所以这里展示的是解质量优势，而不是实时计算速度优势。
+
+`p4_weight_sensitivity.csv` 用同一套滚动时域框架比较三种目标口径：
+
+```text
+服务等级优先   更重视减少延期任务和高优先级延期，当前 late_count=3、priority_late_count=6，但总延期上升到 120.59
+均衡权重       默认口径，当前总延期 72.58、Cmax 71.60、F2 6164.07
+稳定性优先     更重视少扰动和运行成本，当前 F3 略低于均衡口径，但总延期和 Cmax 高于均衡口径
+```
+
+这说明 P4 不是只给出一个“能跑”的排布，而是完成了进阶要求中的方法比较与目标权重敏感性分析：不同目标口径都先过硬约束，再体现服务等级、总延期、稳定性之间的取舍。
 
 ## 动态事件
 

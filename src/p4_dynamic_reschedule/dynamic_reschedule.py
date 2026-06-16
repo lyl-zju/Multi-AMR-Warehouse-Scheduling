@@ -38,6 +38,11 @@ STRATEGY_LABELS = {
     "wait_only": "仅等待",
     "rolling_horizon": "滚动时域重排",
 }
+OBJECTIVE_PROFILES = {
+    "service_priority": "服务等级优先",
+    "balanced": "均衡权重",
+    "stability_priority": "稳定性优先",
+}
 WAIT_ONLY_SEGMENTS = {
     "repair_wait_at_node",
     "block_wait_at_node",
@@ -588,6 +593,60 @@ def scalar_score(metric_tuple_value):
     return hard * 1e9 + priority_late * 1e7 + late_count * 1e6 + f2 * 100.0 + f3 + stability
 
 
+def changed_count_from_schedule(schedule, original_lookup):
+    changed = 0
+    for row in schedule.itertuples(index=False):
+        old = original_lookup.get(str(row.task_id))
+        if schedule_record_changed(old, {
+            "amr_id": str(row.amr_id),
+            "start_time": to_float(row.start_time),
+            "finish_time": to_float(row.finish_time),
+        }):
+            changed += 1
+    return changed
+
+
+def objective_score(schedule, conflict_count, amr_states, amrs, original_lookup, profile="balanced"):
+    hard, priority_late, late_count, f2, f3, stability = metrics_tuple(schedule, amr_states, amrs, original_lookup)
+    total_delay = float(pd.to_numeric(schedule["delay"], errors="coerce").fillna(0.0).sum())
+    cmax = float(pd.to_numeric(schedule["finish_time"], errors="coerce").max())
+    changed = changed_count_from_schedule(schedule, original_lookup)
+    hard_total = conflict_count + hard
+
+    if profile == "service_priority":
+        return (
+            hard_total,
+            priority_late,
+            late_count,
+            total_delay,
+            cmax,
+            changed,
+            f3,
+            stability,
+        )
+    if profile == "stability_priority":
+        return (
+            hard_total,
+            changed,
+            stability,
+            total_delay,
+            priority_late,
+            late_count,
+            cmax,
+            f3,
+        )
+    return (
+        hard_total,
+        total_delay,
+        priority_late,
+        late_count,
+        cmax,
+        changed,
+        f3,
+        stability,
+    )
+
+
 def evaluate_sequences(sequences, amr_states, tasks, amrs, path_cost, trajectory_samples,
                        trajectory_by_uid, active_blocks, original_lookup=None, repair_waits=None):
     schedule, trajectory = schedule_sequences(
@@ -1088,7 +1147,8 @@ def future_sequences_from_schedule(future_schedule, amrs):
 
 
 def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, amr_states, tasks, amrs, path_cost,
-                                trajectory_samples, trajectory_by_uid, active_blocks, original_lookup):
+                                trajectory_samples, trajectory_by_uid, active_blocks, original_lookup,
+                                objective_profile="balanced"):
     base_sequences = future_sequences_from_schedule(future_schedule, amrs)
     best = None
     for amr_id in sorted(amrs):
@@ -1096,7 +1156,7 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
         for pos in range(len(base) + 1):
             candidate = copy_sequences(base_sequences)
             candidate[amr_id] = insert_task(base, new_task_id, pos)
-            metrics, score, _schedule, _trajectory = evaluate_sequences(
+            repaired_schedule, _repaired_trajectory, repaired_conflicts, _repair_waits = repair_conflicts(
                 candidate,
                 amr_states,
                 tasks,
@@ -1106,24 +1166,21 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
                 trajectory_by_uid,
                 active_blocks,
                 original_lookup,
+                fixed_trajectory,
             )
-            candidate_future_trajectory = schedule_sequences(
-                candidate,
+            conflict_count = len(repaired_conflicts)
+            score = objective_score(
+                repaired_schedule,
+                conflict_count,
                 amr_states,
-                tasks,
                 amrs,
-                path_cost,
-                trajectory_samples,
-                trajectory_by_uid,
-                active_blocks,
-                build_trajectory=True,
-            )[1]
-            conflict_count = len(detect_trajectory_conflicts(combine_trajectory(fixed_trajectory, candidate_future_trajectory)))
-            score = score + pos * 0.01
-            item = (conflict_count, metrics, score, candidate)
-            if best is None or item[:3] < best[:3]:
+                original_lookup,
+                profile=objective_profile,
+            )
+            item = (score, pos, candidate)
+            if best is None or item[:2] < best[:2]:
                 best = item
-    return best[3]
+    return best[2]
 
 
 def append_new_task_to_best_end(new_task_id, future_schedule, fixed_trajectory, amr_states, tasks, amrs, path_cost,
@@ -1299,7 +1356,8 @@ def run_rolling_reschedule(schedule, trajectory, dynamic_events, tasks, amrs, pa
 
 
 def plan_strategy_sequences(strategy, event, future_schedule, impacted_tasks, task_specs, amr_states, amrs, path_cost,
-                            trajectory_samples, trajectory_by_uid, active_blocks, fixed_trajectory, original_lookup):
+                            trajectory_samples, trajectory_by_uid, active_blocks, fixed_trajectory, original_lookup,
+                            objective_profile="balanced"):
     future_task_ids = set(future_schedule["task_id"].astype(str))
     if strategy == "wait_only":
         if event.event_type == "new_task":
@@ -1363,6 +1421,7 @@ def plan_strategy_sequences(strategy, event, future_schedule, impacted_tasks, ta
             trajectory_by_uid,
             active_blocks,
             original_lookup,
+            objective_profile=objective_profile,
         )
         return pool_task_ids, sequences
 
@@ -1376,7 +1435,7 @@ def plan_strategy_sequences(strategy, event, future_schedule, impacted_tasks, ta
 
 
 def run_dynamic_reschedule_strategy(schedule, trajectory, dynamic_events, tasks, amrs, path_cost, trajectory_samples,
-                                    strategy="rolling_horizon"):
+                                    strategy="rolling_horizon", objective_profile="balanced"):
     current_schedule = normalize_p3_schedule(schedule)
     current_trajectory = trajectory.copy()
     task_specs = build_task_specs(tasks)
@@ -1447,6 +1506,7 @@ def run_dynamic_reschedule_strategy(schedule, trajectory, dynamic_events, tasks,
             active_blocks,
             fixed_trajectory,
             original_lookup,
+            objective_profile=objective_profile,
         )
         if not pool_task_ids or sequences is None:
             continue
@@ -1696,11 +1756,46 @@ def build_method_comparison(strategy_outputs, original_schedule):
     return pd.DataFrame(rows)
 
 
+def build_weight_sensitivity(sensitivity_outputs, original_schedule):
+    original = normalize_p3_schedule(original_schedule)
+    original_delay = float(pd.to_numeric(original["delay"], errors="coerce").fillna(0.0).sum())
+    rows = []
+    for profile in ("service_priority", "balanced", "stability_priority"):
+        output = sensitivity_outputs[profile]
+        summary = output["summary"]
+        reschedule_result = output["reschedule_result"]
+        unresolved = summary_metric(summary, "unresolved_trajectory_conflict_count")
+        block_violations = summary_metric(summary, "blocked_area_violation_count")
+        delay_violations = summary_metric(summary, "delayed_amr_violation_count")
+        hard_violations = unresolved + block_violations + delay_violations
+        total_delay = summary_metric(summary, "total_delay")
+        disturbed = int((pd.to_numeric(reschedule_result["changed"], errors="coerce").fillna(0) > 0).sum())
+        rows.append({
+            "profile_id": profile,
+            "profile": OBJECTIVE_PROFILES[profile],
+            "added_delay": rounded(max(0.0, total_delay - original_delay)),
+            "disturbed_tasks": disturbed,
+            "success": int(hard_violations == 0),
+            "total_delay": rounded(total_delay),
+            "late_count": int(summary_metric(summary, "late_count")),
+            "priority_late_count": rounded(summary_metric(summary, "priority_late_count")),
+            "Cmax": rounded(summary_metric(summary, "Cmax")),
+            "F2": rounded(summary_metric(summary, "F2")),
+            "F3": rounded(summary_metric(summary, "F3")),
+            "reschedule_time": rounded(output["elapsed_seconds"]),
+            "blocked_area_violation_count": int(block_violations),
+            "delayed_amr_violation_count": int(delay_violations),
+            "unresolved_trajectory_conflict_count": int(unresolved),
+        })
+    return pd.DataFrame(rows)
+
+
 def main():
     schedule, trajectory_schedule, dynamic_events, tasks, amrs, path_cost, trajectory_samples = load_inputs()
     strategy_outputs = {}
     for strategy in ("global_replan", "wait_only", "rolling_horizon"):
         start_clock = time.perf_counter()
+        profile = "balanced" if strategy == "rolling_horizon" else "service_priority"
         final_schedule, final_trajectory, event_impact, task_events, task_reasons, original_lookup = (
             run_dynamic_reschedule_strategy(
                 schedule,
@@ -1711,6 +1806,7 @@ def main():
                 path_cost,
                 trajectory_samples,
                 strategy=strategy,
+                objective_profile=profile,
             )
         )
         elapsed = time.perf_counter() - start_clock
@@ -1726,12 +1822,45 @@ def main():
             "elapsed_seconds": elapsed,
         }
 
+    sensitivity_outputs = {}
+    for profile in ("service_priority", "balanced", "stability_priority"):
+        if profile == "balanced":
+            sensitivity_outputs[profile] = strategy_outputs["rolling_horizon"]
+            continue
+        start_clock = time.perf_counter()
+        final_schedule, final_trajectory, event_impact, task_events, task_reasons, original_lookup = (
+            run_dynamic_reschedule_strategy(
+                schedule,
+                trajectory_schedule,
+                dynamic_events,
+                tasks,
+                amrs,
+                path_cost,
+                trajectory_samples,
+                strategy="rolling_horizon",
+                objective_profile=profile,
+            )
+        )
+        elapsed = time.perf_counter() - start_clock
+        reschedule_result = build_reschedule_result(final_schedule, original_lookup, task_events, task_reasons)
+        summary = build_summary(schedule, final_schedule, final_trajectory, event_impact, reschedule_result,
+                                dynamic_events)
+        sensitivity_outputs[profile] = {
+            "final_schedule": final_schedule,
+            "final_trajectory": final_trajectory,
+            "event_impact": event_impact,
+            "reschedule_result": reschedule_result,
+            "summary": summary,
+            "elapsed_seconds": elapsed,
+        }
+
     selected = strategy_outputs["rolling_horizon"]
     final_trajectory = selected["final_trajectory"]
     event_impact = selected["event_impact"]
     reschedule_result = selected["reschedule_result"]
     summary = selected["summary"]
     method_comparison = build_method_comparison(strategy_outputs, schedule)
+    weight_sensitivity = build_weight_sensitivity(sensitivity_outputs, schedule)
 
     PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
     reschedule_result.to_csv(PROCESSED_DATA_DIR / "reschedule_result.csv", index=False)
@@ -1739,6 +1868,7 @@ def main():
     summary.to_csv(PROCESSED_DATA_DIR / "reschedule_summary.csv", index=False)
     final_trajectory.to_csv(PROCESSED_DATA_DIR / "trajectory_schedule.csv", index=False)
     method_comparison.to_csv(PROCESSED_DATA_DIR / "p4_method_comparison.csv", index=False)
+    weight_sensitivity.to_csv(PROCESSED_DATA_DIR / "p4_weight_sensitivity.csv", index=False)
 
     conflict_count = int(summary.loc[summary["metric"] == "unresolved_trajectory_conflict_count", "value"].iloc[0])
     block_count = int(summary.loc[summary["metric"] == "blocked_area_violation_count", "value"].iloc[0])
@@ -1753,6 +1883,7 @@ def main():
     print(f"Saved: {PROCESSED_DATA_DIR / 'reschedule_summary.csv'}")
     print(f"Saved: {PROCESSED_DATA_DIR / 'trajectory_schedule.csv'}")
     print(f"Saved: {PROCESSED_DATA_DIR / 'p4_method_comparison.csv'}")
+    print(f"Saved: {PROCESSED_DATA_DIR / 'p4_weight_sensitivity.csv'}")
 
 
 if __name__ == "__main__":

@@ -70,10 +70,12 @@ data/processed/p4/dynamic_event_impact.csv
 data/processed/p4/reschedule_summary.csv
 data/processed/p4/trajectory_schedule.csv
 data/processed/p4/p4_method_comparison.csv
+data/processed/p4/p4_weight_sensitivity.csv
 outputs/p4/p4_gantt_events.png
 outputs/p4/p4_trajectory_map.png
 outputs/p4/p4_event_impact_metrics.png
 outputs/p4/p4_method_comparison.png
+outputs/p4/p4_weight_sensitivity.png
 outputs/p4/p4_dynamic_reschedule.gif
 ```
 
@@ -100,3 +102,5 @@ outputs/p4/p4_dynamic_reschedule.gif
 | `new_task` | 运行中释放新任务 |
 
 P4 当前执行动态滚动重排：它读取 P3 的无冲突基准计划，在 `area_block`、`amr_delay`、`new_task` 事件到来后冻结已执行任务，对未来任务做局部等待修复、新任务滚动插入、候选路径重评估和轨迹冲突修复，并额外比较全局重排、仅等待、滚动时域重排三种策略。
+
+当前 P4 结果中，滚动时域重排与仅等待都满足 100% 冲突消解；在这一可行性前提下，滚动时域重排将总延期从 98.02 降到 72.58，将 Cmax 从 82.84 降到 71.60，将 F2 从 8527.39 降到 6164.07，同时保持封锁区违规、AMR 延误违规和剩余轨迹冲突均为 0。因此 P4 的优势不是“只证明可行”，而是在可行解集合内进一步降低时间效率目标和完工时间。

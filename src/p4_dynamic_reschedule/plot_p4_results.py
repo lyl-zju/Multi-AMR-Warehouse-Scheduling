@@ -9,6 +9,7 @@ Outputs:
     outputs/p4/p4_trajectory_map.png
     outputs/p4/p4_event_impact_metrics.png
     outputs/p4/p4_method_comparison.png
+    outputs/p4/p4_weight_sensitivity.png
     outputs/p4/p4_dynamic_reschedule.gif
 """
 
@@ -107,6 +108,7 @@ def load_inputs():
         "summary": read_csv(P4_DIR / "reschedule_summary.csv"),
         "trajectory": read_csv(P4_DIR / "trajectory_schedule.csv"),
         "method_comparison": read_optional_csv(P4_DIR / "p4_method_comparison.csv"),
+        "weight_sensitivity": read_optional_csv(P4_DIR / "p4_weight_sensitivity.csv"),
     }
 
 
@@ -541,22 +543,26 @@ def plot_method_comparison(method_comparison, out_path):
     display = pd.DataFrame({
         "方法": table["method"].astype(str),
         "新增延期": to_num(table["added_delay"]).map(lambda value: f"{value:.2f}"),
-        "扰动任务数": to_num(table["disturbed_tasks"]).fillna(0).astype(int).astype(str),
+        "总延期": to_num(table["total_delay"]).map(lambda value: f"{value:.2f}"),
+        "Cmax": to_num(table["Cmax"]).map(lambda value: f"{value:.2f}"),
+        "F2": to_num(table["F2"]).map(lambda value: f"{value:.0f}"),
         "冲突消解成功率": to_num(table["conflict_resolution_success_rate"]).map(lambda value: f"{value * 100:.0f}%"),
-        "重排时间/s": to_num(table["reschedule_time"]).map(lambda value: f"{value:.2f}"),
     })
 
-    fig, ax = plt.subplots(figsize=(13.5, 3.8), dpi=160)
-    ax.axis("off")
-    ax.set_title("P4 dynamic rescheduling method comparison", loc="left", fontsize=13, pad=14)
+    fig = plt.figure(figsize=(13.5, 6.2), dpi=160)
+    grid = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.34)
+    ax_table = fig.add_subplot(grid[0, 0])
+    ax_bar = fig.add_subplot(grid[1, 0])
+    ax_table.axis("off")
+    ax_table.set_title("P4 dynamic rescheduling method comparison", loc="left", fontsize=13, pad=14)
 
-    mpl_table = ax.table(
+    mpl_table = ax_table.table(
         cellText=display.values,
         colLabels=display.columns,
         cellLoc="center",
         colLoc="center",
         loc="center",
-        colWidths=[0.23, 0.17, 0.18, 0.24, 0.18],
+        colWidths=[0.20, 0.16, 0.16, 0.14, 0.16, 0.18],
     )
     mpl_table.auto_set_font_size(False)
     mpl_table.set_fontsize(10)
@@ -571,18 +577,87 @@ def plot_method_comparison(method_comparison, out_path):
         else:
             success = float(table.iloc[row - 1]["conflict_resolution_success_rate"])
             cell.set_facecolor("#f7fbf7" if success >= 1.0 else "#fff7ed")
-            if col == 3:
+            if col == 5:
                 cell.set_text_props(color="#166534" if success >= 1.0 else "#c2410c", weight="bold")
 
-    ax.text(
+    wait = table[table["method_id"].astype(str) == "wait_only"]
+    rolling = table[table["method_id"].astype(str) == "rolling_horizon"]
+    if not wait.empty and not rolling.empty:
+        wait_row = wait.iloc[0]
+        rolling_row = rolling.iloc[0]
+        metrics = [
+            ("总延期", "total_delay"),
+            ("Cmax", "Cmax"),
+            ("F2", "F2"),
+            ("F3", "F3"),
+        ]
+        labels = [item[0] for item in metrics]
+        improvements = []
+        for _label, col in metrics:
+            base = float(wait_row[col])
+            value = float(rolling_row[col])
+            improvements.append((base - value) / base * 100.0 if base else 0.0)
+        colors = ["#16a34a" if value >= 0 else "#c1121f" for value in improvements]
+        ax_bar.bar(labels, improvements, color=colors, alpha=0.86)
+        ax_bar.axhline(0, color="#111827", linewidth=0.8)
+        ax_bar.set_ylabel("improvement vs wait-only (%)")
+        ax_bar.set_title("Rolling-horizon improvement over wait-only baseline", loc="left", fontsize=11)
+        ax_bar.grid(axis="y", linestyle="--", linewidth=0.45, alpha=0.35)
+        for idx, value in enumerate(improvements):
+            va = "bottom" if value >= 0 else "top"
+            y = value + (0.8 if value >= 0 else -0.8)
+            ax_bar.text(idx, y, f"{value:.1f}%", ha="center", va=va, fontsize=9)
+
+    ax_table.text(
         0.0,
-        0.08,
-        "Higher success rate is preferred first; added delay and disturbed tasks are secondary comparison metrics.",
-        transform=ax.transAxes,
+        0.02,
+        "Feasibility is the first gate; among feasible methods, lower total delay, Cmax and F2 indicate better rolling performance.",
+        transform=ax_table.transAxes,
         fontsize=8.5,
         color="#4b5563",
         ha="left",
     )
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_weight_sensitivity(weight_sensitivity, out_path):
+    if weight_sensitivity.empty:
+        return
+
+    table = weight_sensitivity.copy()
+    order = ["service_priority", "balanced", "stability_priority"]
+    table["profile_id"] = table["profile_id"].astype(str)
+    table = table.set_index("profile_id").reindex(order).dropna(how="all").reset_index()
+    labels = table["profile"].astype(str).tolist()
+    colors = ["#c1121f", "#2a9d8f", "#9aa0a6"][: len(table)]
+    panels = [
+        ("total_delay", "总延期", "{:.1f}"),
+        ("priority_late_count", "加权延期任务数", "{:.0f}"),
+        ("Cmax", "Cmax", "{:.1f}"),
+        ("F2", "时间效率目标 F2", "{:.0f}"),
+        ("F3", "运行成本目标 F3", "{:.0f}"),
+    ]
+
+    fig, axes = plt.subplots(1, len(panels), figsize=(16, 3.8), dpi=160)
+    for ax, (col, title, fmt) in zip(axes, panels):
+        values = to_num(table[col]).fillna(0.0).to_numpy(dtype=float)
+        ax.bar(labels, values, color=colors, alpha=0.88)
+        ax.set_title(title, fontsize=10.5)
+        ax.tick_params(axis="x", rotation=20, labelsize=8)
+        ax.grid(axis="y", linestyle="--", linewidth=0.45, alpha=0.35)
+        ymax = max(values) if len(values) else 1.0
+        offset = ymax * 0.025 if ymax else 0.1
+        for idx, value in enumerate(values):
+            ax.text(idx, value + offset, fmt.format(value), ha="center", va="bottom", fontsize=8.5)
+
+    fig.suptitle(
+        "P4 rolling-horizon objective-profile sensitivity  "
+        "balanced profile keeps feasibility while minimizing the main time-efficiency indicators",
+        fontsize=12.5,
+        y=1.02,
+    )
+    fig.tight_layout()
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
 
@@ -865,6 +940,7 @@ def main():
         OUT_DIR / "p4_trajectory_map.png",
         OUT_DIR / "p4_event_impact_metrics.png",
         OUT_DIR / "p4_method_comparison.png",
+        OUT_DIR / "p4_weight_sensitivity.png",
         OUT_DIR / "p4_dynamic_reschedule.gif",
     ]
 
@@ -896,6 +972,10 @@ def main():
         data["method_comparison"],
         outputs[3],
     )
+    plot_weight_sensitivity(
+        data["weight_sensitivity"],
+        outputs[4],
+    )
     render_dynamic_reschedule_gif(
         data["nodes"],
         data["zones"],
@@ -904,7 +984,7 @@ def main():
         data["reschedule"],
         data["trajectory"],
         data["summary"],
-        outputs[4],
+        outputs[5],
         fps=args.fps,
         speedup=args.speedup,
     )
