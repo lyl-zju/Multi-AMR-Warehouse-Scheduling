@@ -1,4 +1,4 @@
 mode,selected,initial_conflicts,remaining_conflicts,total_delay,Cmax,total_wait_added,reroute_count,resequence_count,initial_wait_added,objective,selection_rule
-wait,0,21,0,82.974888,80.840111,53.0,0,0,45.0,9654.689355,"min remaining_conflicts, then 100*delay+5*Cmax+wait_added+2*reroute_count+20*resequence_count+20*initial_wait_added"
-wait_reroute,0,21,0,82.974888,80.840111,53.0,0,0,45.0,9654.689355,"min remaining_conflicts, then 100*delay+5*Cmax+wait_added+2*reroute_count+20*resequence_count+20*initial_wait_added"
-wait_reroute_resequence,1,21,0,82.974888,80.840111,53.0,0,0,45.0,9654.689355,"min remaining_conflicts, then 100*delay+5*Cmax+wait_added+2*reroute_count+20*resequence_count+20*initial_wait_added"
+wait,0,21,0,0.0,46.59697,16.0,0,0,0.0,248.98485,"min remaining_conflicts, then 100*delay+5*Cmax+wait_added+2*reroute_count+20*resequence_count+20*initial_wait_added"
+wait_reroute,0,21,0,0.0,46.59697,16.0,0,0,0.0,248.98485,"min remaining_conflicts, then 100*delay+5*Cmax+wait_added+2*reroute_count+20*resequence_count+20*initial_wait_added"
+wait_reroute_resequence,1,21,0,0.0,46.59697,16.0,0,0,0.0,248.98485,"min remaining_conflicts, then 100*delay+5*Cmax+wait_added+2*reroute_count+20*resequence_count+20*initial_wait_added"
