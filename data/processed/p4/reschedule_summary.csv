@@ -2,12 +2,12 @@ metric,value,description
 OriginalScheduledTasks,12.0,Number of tasks with a valid pre-event P3 schedule
 DynamicEvents,3.0,Number of dynamic events loaded from dynamic_events.csv
 AffectedEvents,2.0,Number of dynamic events that directly affected at least one task
-ChangedTasks,3.0,Number of tasks changed or inserted by P4
+ChangedTasks,4.0,Number of tasks changed or inserted by P4
 NewTasks,1.0,Number of dynamic tasks inserted after release events
 OriginalCmax,46.59697,Maximum original finish time after P3
-NewCmax,73.331,Maximum finish time after P4 rolling rescheduling
-TotalAddedDelay,56.981778,Total positive finish-time shift relative to P3/new-task baseline
-total_start_shift,56.981778,Total absolute task start-time shift
+NewCmax,61.918082,Maximum finish time after P4 rolling rescheduling
+TotalAddedDelay,43.996446,Total positive finish-time shift relative to P3/new-task baseline
+total_start_shift,43.996446,Total absolute task start-time shift
 missing_loaded_path_count,0.0,Loaded path missing or blocked count
 missing_transition_count,0.0,Transition path missing or blocked count
 unresolved_trajectory_conflict_count,0.0,Remaining footprint or node-capacity conflicts after P4 repair
@@ -15,15 +15,15 @@ blocked_area_violation_count,0.0,Area block events still intersect final traject
 delayed_amr_violation_count,0.0,Scheduled tasks overlapping AMR delay windows
 all_dynamic_tasks_scheduled,1.0,Whether every static and dynamic task has a scheduled result
 energy_violation_count,0.0,Tasks after which battery is below safety threshold
-priority_late_count,4.0,Priority-weighted number of delayed tasks
-late_count,2.0,Number of delayed tasks
-priority_delay,83.588667,Priority-weighted total delay
-total_delay,41.794333,Total delay
-Cmax,73.331,Final makespan
+priority_late_count,6.0,Priority-weighted number of delayed tasks
+late_count,3.0,Number of delayed tasks
+priority_delay,46.811941,Priority-weighted total delay
+total_delay,23.405971,Total delay
+Cmax,61.918082,Final makespan
 empty_cost,67.087,Total transition path cost
-load_balance_penalty,33.037556,Max-min AMR finish-time load
+load_balance_penalty,21.624638,Max-min AMR finish-time load
 total_energy_used,156.759,Total P4 energy usage
-F1_priority_late_count,4.0,First lexicographic objective component
-F1_late_count,2.0,First lexicographic objective component
-F2,3710.201667,Time-efficiency weighted objective
-F3,621.308559,Operating-cost weighted objective
+F1_priority_late_count,6.0,First lexicographic objective component
+F1_late_count,3.0,First lexicographic objective component
+F2,2182.068048,Time-efficiency weighted objective
+F3,507.179375,Operating-cost weighted objective

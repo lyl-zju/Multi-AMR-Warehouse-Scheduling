@@ -1,4 +1,4 @@
 profile_id,profile,profile_note,added_delay,disturbed_tasks,success,total_delay,late_count,priority_late_count,Cmax,F2,F3,reschedule_time,blocked_area_violation_count,delayed_amr_violation_count,unresolved_trajectory_conflict_count
-service_priority,服务等级优先,reused_balanced_solution,41.794333,3,1,41.794333,2,4.0,73.331,3710.201667,621.308559,0.477828,0,0,0
-balanced,均衡权重,selected_solution,41.794333,3,1,41.794333,2,4.0,73.331,3710.201667,621.308559,0.477828,0,0,0
-stability_priority,稳定性优先,reused_balanced_solution,41.794333,3,1,41.794333,2,4.0,73.331,3710.201667,621.308559,0.477828,0,0,0
+service_priority,服务等级优先,reused_balanced_solution,23.405971,4,1,23.405971,3,6.0,61.918082,2182.068048,507.179375,19.333895,0,0,0
+balanced,均衡权重,selected_solution,23.405971,4,1,23.405971,3,6.0,61.918082,2182.068048,507.179375,19.333895,0,0,0
+stability_priority,稳定性优先,reused_balanced_solution,23.405971,4,1,23.405971,3,6.0,61.918082,2182.068048,507.179375,19.333895,0,0,0

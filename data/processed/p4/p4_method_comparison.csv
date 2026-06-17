@@ -1,2 +1,2 @@
 method_id,method,added_delay,disturbed_tasks,conflict_resolution_success_rate,reschedule_time,total_delay,late_count,priority_late_count,Cmax,F2,F3,changed_tasks,new_tasks,blocked_area_violation_count,delayed_amr_violation_count,unresolved_trajectory_conflict_count
-rolling_horizon,滚动时域重排,41.794333,3,1.0,0.477828,41.794333,2,4.0,73.331,3710.201667,621.308559,3,1,0,0,0
+rolling_horizon,滚动时域重排,23.405971,4,1.0,19.333895,23.405971,3,6.0,61.918082,2182.068048,507.179375,4,1,0,0,0

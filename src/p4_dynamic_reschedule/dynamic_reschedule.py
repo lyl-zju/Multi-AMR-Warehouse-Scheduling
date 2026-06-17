@@ -58,6 +58,8 @@ BLOCK_WAIT_EPS = 0.1
 MAX_BLOCK_SHIFT_ATTEMPTS = 8
 MAX_LOCAL_SEARCH_ITERATIONS = 10
 MAX_CONFLICT_REPAIR_ITERATIONS = 30
+MAX_NEW_TASK_GLOBAL_CANDIDATES = 3
+MAX_NEW_TASK_CANDIDATE_REPAIR_ITERATIONS = 3
 WAIT_OPTIONS = (1.0, 2.0, 5.0, 8.0, 12.0, 20.0)
 REPLAN_HORIZON_SLACK = 1e-6
 
@@ -954,13 +956,14 @@ def repair_conflicts(
     active_blocks,
     original_lookup,
     fixed_trajectory,
+    max_iterations=MAX_CONFLICT_REPAIR_ITERATIONS,
 ):
     repair_waits = {}
     best_schedule = None
     best_trajectory = None
     best_conflicts = None
 
-    for iteration in range(MAX_CONFLICT_REPAIR_ITERATIONS + 1):
+    for iteration in range(max_iterations + 1):
         future_schedule, future_trajectory = schedule_sequences(
             sequences,
             amr_states,
@@ -975,7 +978,7 @@ def repair_conflicts(
         combined_trajectory = combine_trajectory(fixed_trajectory, future_trajectory)
         conflicts = detect_trajectory_conflicts(combined_trajectory)
         best_schedule, best_trajectory, best_conflicts = future_schedule, combined_trajectory, conflicts
-        if conflicts.empty or iteration == MAX_CONFLICT_REPAIR_ITERATIONS:
+        if conflicts.empty or iteration == max_iterations:
             break
 
         conflicts = conflicts.copy()
@@ -1164,13 +1167,13 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
                                 trajectory_samples, trajectory_by_uid, active_blocks, original_lookup,
                                 objective_profile="balanced"):
     base_sequences = future_sequences_from_schedule(future_schedule, amrs)
-    best = None
+    preliminary = []
     for amr_id in sorted(amrs):
         base = list(base_sequences[amr_id])
         for pos in range(len(base) + 1):
             candidate = copy_sequences(base_sequences)
             candidate[amr_id] = insert_task(base, new_task_id, pos)
-            metrics, quick_score, _schedule, _trajectory = evaluate_sequences(
+            candidate_schedule, candidate_trajectory = schedule_sequences(
                 candidate,
                 amr_states,
                 tasks,
@@ -1179,12 +1182,77 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
                 trajectory_samples,
                 trajectory_by_uid,
                 active_blocks,
-                original_lookup,
+                build_trajectory=True,
             )
-            item = (metrics, quick_score, pos, candidate)
-            if best is None or item[:3] < best[:3]:
-                best = item
-    return best[3]
+            combined_trajectory = combine_trajectory(fixed_trajectory, candidate_trajectory)
+            conflict_count = len(detect_trajectory_conflicts(combined_trajectory))
+            score = objective_score(
+                candidate_schedule,
+                conflict_count,
+                amr_states,
+                amrs,
+                original_lookup,
+                profile=objective_profile,
+            )
+            preliminary.append({
+                "key": (score, pos, amr_id),
+                "amr_id": amr_id,
+                "pos": pos,
+                "sequences": candidate,
+            })
+
+    if not preliminary:
+        return base_sequences
+
+    preliminary.sort(key=lambda item: item["key"])
+    shortlisted = []
+    seen = set()
+
+    def add_shortlist(item):
+        marker = tuple((amr_id, tuple(seq)) for amr_id, seq in sorted(item["sequences"].items()))
+        if marker not in seen:
+            seen.add(marker)
+            shortlisted.append(item)
+
+    for item in preliminary[:MAX_NEW_TASK_GLOBAL_CANDIDATES]:
+        add_shortlist(item)
+    for amr_id in sorted(amrs):
+        for item in preliminary:
+            if item["amr_id"] == amr_id:
+                add_shortlist(item)
+                break
+        for item in preliminary:
+            if item["amr_id"] == amr_id and item["pos"] == 0:
+                add_shortlist(item)
+                break
+
+    best = None
+    for item in shortlisted:
+        repaired_schedule, _repaired_trajectory, conflicts, _repair_waits = repair_conflicts(
+            item["sequences"],
+            amr_states,
+            tasks,
+            amrs,
+            path_cost,
+            trajectory_samples,
+            trajectory_by_uid,
+            active_blocks,
+            original_lookup,
+            fixed_trajectory,
+            max_iterations=MAX_NEW_TASK_CANDIDATE_REPAIR_ITERATIONS,
+        )
+        repaired_score = objective_score(
+            repaired_schedule,
+            len(conflicts),
+            amr_states,
+            amrs,
+            original_lookup,
+            profile=objective_profile,
+        )
+        repaired_item = (repaired_score, item["key"], item["sequences"])
+        if best is None or repaired_item[:2] < best[:2]:
+            best = repaired_item
+    return best[2] if best is not None else preliminary[0]["sequences"]
 
 
 def append_new_task_to_best_end(new_task_id, future_schedule, fixed_trajectory, amr_states, tasks, amrs, path_cost,
