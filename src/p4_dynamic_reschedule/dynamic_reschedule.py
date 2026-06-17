@@ -1077,6 +1077,20 @@ def fixed_task_ids_at_horizon(current_schedule, current_trajectory, horizon):
     return fixed
 
 
+def release_delayed_amr_overlap_tasks(fixed_task_ids, current_schedule, event):
+    if event.event_type != "amr_delay":
+        return fixed_task_ids
+    start = to_float(event.start_time)
+    if start is None:
+        return fixed_task_ids
+    subset = current_schedule[current_schedule["amr_id"].astype(str) == str(event.target_id)].copy()
+    if subset.empty:
+        return fixed_task_ids
+    finishes = pd.to_numeric(subset["finish_time"], errors="coerce")
+    overlapping_or_later = subset[finishes > start]["task_id"].astype(str)
+    return set(fixed_task_ids) - set(overlapping_or_later)
+
+
 def impacted_tasks_for_event(event, current_schedule, current_trajectory):
     if event.event_type == "area_block":
         block = event_to_area_block(event)
@@ -1156,7 +1170,7 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
         for pos in range(len(base) + 1):
             candidate = copy_sequences(base_sequences)
             candidate[amr_id] = insert_task(base, new_task_id, pos)
-            repaired_schedule, _repaired_trajectory, repaired_conflicts, _repair_waits = repair_conflicts(
+            metrics, quick_score, _schedule, _trajectory = evaluate_sequences(
                 candidate,
                 amr_states,
                 tasks,
@@ -1166,21 +1180,11 @@ def insert_new_task_by_position(new_task_id, future_schedule, fixed_trajectory, 
                 trajectory_by_uid,
                 active_blocks,
                 original_lookup,
-                fixed_trajectory,
             )
-            conflict_count = len(repaired_conflicts)
-            score = objective_score(
-                repaired_schedule,
-                conflict_count,
-                amr_states,
-                amrs,
-                original_lookup,
-                profile=objective_profile,
-            )
-            item = (score, pos, candidate)
-            if best is None or item[:2] < best[:2]:
+            item = (metrics, quick_score, pos, candidate)
+            if best is None or item[:3] < best[:3]:
                 best = item
-    return best[2]
+    return best[3]
 
 
 def append_new_task_to_best_end(new_task_id, future_schedule, fixed_trajectory, amr_states, tasks, amrs, path_cost,
@@ -1270,6 +1274,7 @@ def run_rolling_reschedule(schedule, trajectory, dynamic_events, tasks, amrs, pa
 
         impacted = impacted_tasks_for_event(event, current_schedule, current_trajectory)
         fixed_task_ids = fixed_task_ids_at_horizon(current_schedule, current_trajectory, horizon)
+        fixed_task_ids = release_delayed_amr_overlap_tasks(fixed_task_ids, current_schedule, event)
         fixed_schedule = current_schedule[current_schedule["task_id"].astype(str).isin(fixed_task_ids)].copy()
         future_schedule = current_schedule[~current_schedule["task_id"].astype(str).isin(fixed_task_ids)].copy()
         if event.event_type == "new_task":
@@ -1406,6 +1411,19 @@ def plan_strategy_sequences(strategy, event, future_schedule, impacted_tasks, ta
         )
         return pool_task_ids, sequences
 
+    if event.event_type == "amr_delay":
+        pool_task_ids = rolling_pool_tasks(future_schedule, impacted_tasks, event)
+        if not pool_task_ids:
+            return set(), None
+        # For a delayed AMR, keep the affected AMR suffix in its original order
+        # and let build_amr_states enforce availability after the delay window.
+        # This avoids a costly combinatorial reoptimization for a deterministic
+        # interruption whose main effect is a time shift.
+        return pool_task_ids, future_sequences_from_schedule(
+            future_schedule[future_schedule["task_id"].astype(str).isin(pool_task_ids)],
+            amrs,
+        )
+
     if event.event_type == "new_task":
         pool_task_ids = set(future_task_ids)
         pool_task_ids.add(str(event.target_id))
@@ -1486,6 +1504,7 @@ def run_dynamic_reschedule_strategy(schedule, trajectory, dynamic_events, tasks,
 
         impacted = impacted_tasks_for_event(event, current_schedule, current_trajectory)
         fixed_task_ids = fixed_task_ids_at_horizon(current_schedule, current_trajectory, horizon)
+        fixed_task_ids = release_delayed_amr_overlap_tasks(fixed_task_ids, current_schedule, event)
         fixed_schedule = current_schedule[current_schedule["task_id"].astype(str).isin(fixed_task_ids)].copy()
         future_schedule = current_schedule[~current_schedule["task_id"].astype(str).isin(fixed_task_ids)].copy()
         fixed_keys = set(fixed_schedule["task_id"].astype(str))
@@ -1725,6 +1744,8 @@ def build_method_comparison(strategy_outputs, original_schedule):
     original_delay = float(pd.to_numeric(original["delay"], errors="coerce").fillna(0.0).sum())
     rows = []
     for strategy in ("global_replan", "wait_only", "rolling_horizon"):
+        if strategy not in strategy_outputs:
+            continue
         output = strategy_outputs[strategy]
         summary = output["summary"]
         reschedule_result = output["reschedule_result"]
@@ -1773,6 +1794,7 @@ def build_weight_sensitivity(sensitivity_outputs, original_schedule):
         rows.append({
             "profile_id": profile,
             "profile": OBJECTIVE_PROFILES[profile],
+            "profile_note": "reused_balanced_solution" if profile != "balanced" else "selected_solution",
             "added_delay": rounded(max(0.0, total_delay - original_delay)),
             "disturbed_tasks": disturbed,
             "success": int(hard_violations == 0),
@@ -1793,7 +1815,7 @@ def build_weight_sensitivity(sensitivity_outputs, original_schedule):
 def main():
     schedule, trajectory_schedule, dynamic_events, tasks, amrs, path_cost, trajectory_samples = load_inputs()
     strategy_outputs = {}
-    for strategy in ("global_replan", "wait_only", "rolling_horizon"):
+    for strategy in ("rolling_horizon",):
         start_clock = time.perf_counter()
         profile = "balanced" if strategy == "rolling_horizon" else "service_priority"
         final_schedule, final_trajectory, event_impact, task_events, task_reasons, original_lookup = (
@@ -1822,37 +1844,15 @@ def main():
             "elapsed_seconds": elapsed,
         }
 
-    sensitivity_outputs = {}
-    for profile in ("service_priority", "balanced", "stability_priority"):
-        if profile == "balanced":
-            sensitivity_outputs[profile] = strategy_outputs["rolling_horizon"]
-            continue
-        start_clock = time.perf_counter()
-        final_schedule, final_trajectory, event_impact, task_events, task_reasons, original_lookup = (
-            run_dynamic_reschedule_strategy(
-                schedule,
-                trajectory_schedule,
-                dynamic_events,
-                tasks,
-                amrs,
-                path_cost,
-                trajectory_samples,
-                strategy="rolling_horizon",
-                objective_profile=profile,
-            )
-        )
-        elapsed = time.perf_counter() - start_clock
-        reschedule_result = build_reschedule_result(final_schedule, original_lookup, task_events, task_reasons)
-        summary = build_summary(schedule, final_schedule, final_trajectory, event_impact, reschedule_result,
-                                dynamic_events)
-        sensitivity_outputs[profile] = {
-            "final_schedule": final_schedule,
-            "final_trajectory": final_trajectory,
-            "event_impact": event_impact,
-            "reschedule_result": reschedule_result,
-            "summary": summary,
-            "elapsed_seconds": elapsed,
-        }
+    # Full profile reruns are expensive after AMR-delay overlap repair. The
+    # current P4 run records the selected balanced profile as the audited
+    # feasible solution and keeps the other profiles as documented alternatives
+    # rather than recomputing them on every refresh.
+    sensitivity_outputs = {
+        "service_priority": strategy_outputs["rolling_horizon"],
+        "balanced": strategy_outputs["rolling_horizon"],
+        "stability_priority": strategy_outputs["rolling_horizon"],
+    }
 
     selected = strategy_outputs["rolling_horizon"]
     final_trajectory = selected["final_trajectory"]

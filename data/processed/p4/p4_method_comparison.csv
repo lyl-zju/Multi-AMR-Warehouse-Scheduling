@@ -1,4 +1,2 @@
 method_id,method,added_delay,disturbed_tasks,conflict_resolution_success_rate,reschedule_time,total_delay,late_count,priority_late_count,Cmax,F2,F3,changed_tasks,new_tasks,blocked_area_violation_count,delayed_amr_violation_count,unresolved_trajectory_conflict_count
-global_replan,全局重排,40.627951,8,0.0,34.981657,123.602839,3,5.0,100.859383,10098.357391,807.105049,8,1,0,1,16
-wait_only,仅等待,15.047274,8,1.0,2.257746,98.022162,4,9.0,82.840111,8527.391667,721.17267,8,1,0,0,0
-rolling_horizon,滚动时域重排,0.0,8,1.0,71.54265,72.575798,4,8.0,71.600909,6164.068384,604.00765,8,1,0,0,0
+rolling_horizon,滚动时域重排,41.794333,3,1.0,0.477828,41.794333,2,4.0,73.331,3710.201667,621.308559,3,1,0,0,0

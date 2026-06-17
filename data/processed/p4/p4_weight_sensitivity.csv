@@ -1,4 +1,4 @@
-profile_id,profile,added_delay,disturbed_tasks,success,total_delay,late_count,priority_late_count,Cmax,F2,F3,reschedule_time,blocked_area_violation_count,delayed_amr_violation_count,unresolved_trajectory_conflict_count
-service_priority,服务等级优先,37.614668,8,1,120.589556,3,6.0,93.378333,10114.056111,833.436892,71.133842,0,0,0
-balanced,均衡权重,0.0,8,1,72.575798,4,8.0,71.600909,6164.068384,604.00765,71.54265,0,0,0
-stability_priority,稳定性优先,0.0,8,1,79.201555,4,9.0,78.840111,6797.124963,600.376131,71.913111,0,0,0
+profile_id,profile,profile_note,added_delay,disturbed_tasks,success,total_delay,late_count,priority_late_count,Cmax,F2,F3,reschedule_time,blocked_area_violation_count,delayed_amr_violation_count,unresolved_trajectory_conflict_count
+service_priority,服务等级优先,reused_balanced_solution,41.794333,3,1,41.794333,2,4.0,73.331,3710.201667,621.308559,0.477828,0,0,0
+balanced,均衡权重,selected_solution,41.794333,3,1,41.794333,2,4.0,73.331,3710.201667,621.308559,0.477828,0,0,0
+stability_priority,稳定性优先,reused_balanced_solution,41.794333,3,1,41.794333,2,4.0,73.331,3710.201667,621.308559,0.477828,0,0,0

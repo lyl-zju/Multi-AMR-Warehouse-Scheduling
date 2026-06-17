@@ -549,10 +549,16 @@ def plot_method_comparison(method_comparison, out_path):
         "冲突消解成功率": to_num(table["conflict_resolution_success_rate"]).map(lambda value: f"{value * 100:.0f}%"),
     })
 
-    fig = plt.figure(figsize=(13.5, 6.2), dpi=160)
-    grid = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.05], hspace=0.34)
+    has_wait_comparison = (
+        (table["method_id"].astype(str) == "wait_only").any()
+        and (table["method_id"].astype(str) == "rolling_horizon").any()
+    )
+    fig_height = 6.2 if has_wait_comparison else 3.4
+    fig = plt.figure(figsize=(13.5, fig_height), dpi=160)
+    height_ratios = [1.0, 1.05] if has_wait_comparison else [1.0]
+    grid = fig.add_gridspec(2 if has_wait_comparison else 1, 1, height_ratios=height_ratios, hspace=0.34)
     ax_table = fig.add_subplot(grid[0, 0])
-    ax_bar = fig.add_subplot(grid[1, 0])
+    ax_bar = fig.add_subplot(grid[1, 0]) if has_wait_comparison else None
     ax_table.axis("off")
     ax_table.set_title("P4 dynamic rescheduling method comparison", loc="left", fontsize=13, pad=14)
 
@@ -582,7 +588,7 @@ def plot_method_comparison(method_comparison, out_path):
 
     wait = table[table["method_id"].astype(str) == "wait_only"]
     rolling = table[table["method_id"].astype(str) == "rolling_horizon"]
-    if not wait.empty and not rolling.empty:
+    if ax_bar is not None and not wait.empty and not rolling.empty:
         wait_row = wait.iloc[0]
         rolling_row = rolling.iloc[0]
         metrics = [
@@ -728,12 +734,27 @@ def event_label_at(events, t):
     return "; ".join(labels)
 
 
-def render_dynamic_reschedule_gif(nodes, zones, obstacles, events, reschedule, trajectory, summary, out_path, fps=8, speedup=2.0):
+def render_dynamic_reschedule_gif(
+    nodes,
+    zones,
+    obstacles,
+    events,
+    reschedule,
+    trajectory,
+    summary,
+    out_path,
+    fps=8,
+    speedup=2.0,
+    max_frames=180,
+):
     amr_series = build_amr_series(trajectory)
     start_time = float(trajectory["absolute_time"].min())
     end_time = float(trajectory["absolute_time"].max())
     frame_dt = speedup / fps
     times = np.arange(start_time, end_time + frame_dt, frame_dt)
+    if max_frames and len(times) > max_frames:
+        indices = np.linspace(0, len(times) - 1, max_frames).round().astype(int)
+        times = times[indices]
     node_xy = {str(row.node_id): (float(row.x), float(row.y)) for row in nodes.itertuples(index=False)}
 
     fig, ax = plt.subplots(figsize=(12.5, 7.2), dpi=120)
@@ -927,6 +948,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Plot and animate P4 dynamic rescheduling results.")
     parser.add_argument("--fps", type=int, default=8, help="GIF frames per second.")
     parser.add_argument("--speedup", type=float, default=2.0, help="Simulated time units per playback second.")
+    parser.add_argument("--max-frames", type=int, default=180, help="Maximum frames sampled for the GIF.")
     return parser.parse_args()
 
 
@@ -987,6 +1009,7 @@ def main():
         outputs[5],
         fps=args.fps,
         speedup=args.speedup,
+        max_frames=args.max_frames,
     )
 
     for output in outputs:
