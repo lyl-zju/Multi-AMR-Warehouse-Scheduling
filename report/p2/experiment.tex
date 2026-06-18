@@ -1,0 +1,52 @@
+﻿\subsection{P2 方法对比}
+
+\verb|outputs/p2_experiments/p2_method_comparison.csv| 记录了 P2 的方法对比和敏感性实验。基础算例中，m0、m1、m2、m3 都能得到无缺失路径、无电量违反、无延期的解，但时间效率和运行成本不同。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.12\linewidth}rrrrr}
+\toprule
+方法 & 求解时间(s) & $C_{\max}$ & F2 & F3 & 说明 \\
+\midrule
+m0 & 0.004 & 49.015333 & 245.076667 & 427.068565 & 贪心基线 \\
+m1 & 5.635 & 51.601313 & 258.006566 & 448.638042 & 两阶段精确/DP \\
+m2 & 116.728 & 40.577778 & 202.888889 & 270.517511 & 联合 MILP 目标规划 \\
+m3 & 0.198 & 40.577778 & 202.888889 & 270.517511 & 后悔值插入 + 局部搜索 \\
+\bottomrule
+\end{tabular}
+\caption{P2 基础算例方法对比}
+\label{tab:p2-method-comparison}
+\end{table}
+
+表 \ref{tab:p2-method-comparison} 给出了 P2 基础算例的核心数值。可以看到，m2 与 m3 在基础算例上达到相同的 F2/F3 水平，但 m3 的运行时间显著更短。若以 m2 为精确建模标尺，则 m3 在该算例中以约 $1/589$ 的时间得到同等质量解，说明本文并非只停留在模型公式层面，而是进一步给出了可扩展的工程求解路径。因此，m2 适合展示整数规划和目标规划建模，m3 适合在批量敏感性实验和较大规模场景中作为快速求解器。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p2_method_comparison.png}
+\caption{P2 方法对比图}
+\label{fig:p2-method-comparison}
+\end{figure}
+
+图 \ref{fig:p2-method-comparison} 将表 \ref{tab:p2-method-comparison} 中的差异可视化。其关键信息有两点：第一，联合优化模型明显优于贪心和两阶段分解；第二，m3 在保持解质量的同时大幅降低求解时间。这说明精确模型和启发式方法不是相互替代，而是分别承担“建模基准”和“规模扩展”的角色。
+
+\subsection{P2 敏感性分析}
+
+AMR 数量敏感性实验表明，当 AMR 数量从 2 增加到 4 时，延期和 $C_{\max}$ 显著改善；继续增加 AMR 时，系统收益会逐渐受通道与任务结构限制。这一结论具有管理含义：仓库效率瓶颈并不总是“机器人不够”，当 AMR 数量达到一定水平后，继续增加车辆可能只会把瓶颈转移到通道、节点和任务释放节奏上。任务密度敏感性实验用于观察任务规模增加后延期、负载均衡和求解时间的变化，为选择 m2 或 m3 提供依据。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p2_sensitivity_amr_count.png}
+\caption{AMR 数量敏感性分析}
+\label{fig:p2-amr-sensitivity}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p2_sensitivity_task_density.png}
+\caption{任务密度敏感性分析}
+\label{fig:p2-task-sensitivity}
+\end{figure}
+
+图 \ref{fig:p2-amr-sensitivity} 和图 \ref{fig:p2-task-sensitivity} 分别从资源供给和任务压力两个方向检验模型稳定性。前者说明 AMR 数量增加存在边际收益递减，后者说明任务密度上升后延期和求解难度都会增加。两组实验共同支撑一个管理结论：仓库调度优化不能只看单次算例最优值，还要分析系统在不同资源和负载条件下的变化趋势。
+

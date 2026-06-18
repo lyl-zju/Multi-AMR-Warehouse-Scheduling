@@ -1,0 +1,169 @@
+﻿\section{P2：任务分配与任务排序模型}
+
+\subsection{输入、输出与决策内容}
+
+P2 负责决定三个问题：
+
+\begin{enumerate}
+  \item 每个任务由哪台 AMR 执行；
+  \item 每台 AMR 内部按什么顺序执行任务；
+  \item 每段空驶和载货移动选用哪条 P1 候选路径。
+\end{enumerate}
+
+P2 输入为 \verb|tasks.csv|、\verb|amrs.csv| 和 P1 输出目录中的 \verb|path_cost.csv|，输出为：
+
+\begin{itemize}
+  \item \verb|data/processed/p2/assignment_result.csv|：任务级调度表；
+  \item \verb|data/processed/p2/amr_sequence_summary.csv|：AMR 任务链摘要。
+\end{itemize}
+
+输出表中保留了 P3 所需的接口字段，例如 \verb|transition_path_uid|、\verb|loaded_path_uid|、\verb|estimated_start_time|、\verb|estimated_finish_time|、\verb|estimated_waiting|、\verb|energy_used| 和 \verb|battery_after|。
+
+\subsection{P2 数学模型}
+
+设 $K$ 为 AMR 集合，$J$ 为任务集合，$P_i$ 和 $D_i$ 分别为任务 $i$ 的取货点和送货点。P2 的核心是一个带任务指派、任务排序和路径选择的 0-1 混合整数规划。主要变量如下：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.24\linewidth}p{0.62\linewidth}}
+\toprule
+变量 & 含义 \\
+\midrule
+$x_{ki}\in\{0,1\}$ & 任务 $i$ 是否分配给 AMR $k$ \\
+$s_{ki}\in\{0,1\}$ & 任务 $i$ 是否为 AMR $k$ 的首个任务 \\
+$u_{kij}\in\{0,1\}$ & AMR $k$ 是否在任务 $i$ 后紧接执行任务 $j$ \\
+$S_i,C_i\ge0$ & 任务 $i$ 的开始时间与完成时间 \\
+$T_i\ge0,\ late_i\in\{0,1\}$ & 任务 $i$ 的延期量与是否延期 \\
+$B_i$ & 完成任务 $i$ 后的剩余电量 \\
+$C_{\max},L_k,L_{\max},L_{\min}$ & 系统完工时间、AMR 时间负载及其最大/最小值 \\
+\bottomrule
+\end{tabular}
+\caption{P2 主要决策变量}
+\end{table}
+
+任务唯一分配约束为：
+
+\[
+\sum_{k\in K}x_{ki}=1,\quad \forall i\in J.
+\]
+
+AMR 任务序列约束使用虚拟起点 $0_k$ 和虚拟终点 $\bar{0}_k$ 表示：
+
+\[
+\sum_{j\in J}y_{k,0_k,j}\le 1,\quad
+\sum_{i\in J}y_{k,i,\bar{0}_k}\le 1,\quad \forall k\in K.
+\]
+
+\[
+\sum_{j\in J\cup\{\bar{0}_k\}}y_{kij}=x_{ki},\quad
+\sum_{i\in J\cup\{0_k\}}y_{kij}=x_{kj}.
+\]
+
+若显式使用首任务变量 $s_{ki}$，也可写成：
+
+\[
+s_{kj}+\sum_{i\ne j}u_{kij}=x_{kj},\quad
+\sum_{j\in J}s_{kj}\le 1.
+\]
+
+该约束保证每台 AMR 的任务形成一条线性链，避免同一任务出现多个前驱、多个后继或游离于 AMR 起点之外的子环。
+
+时间递推约束为：
+
+\[
+S_i\ge e_i,\quad
+C_i\ge S_i+s_i+\tau_{P_iD_i}^{q}-M(1-x_{ki}),
+\]
+
+\[
+S_j\ge C_i+\tau_{D_iP_j}^{q}-M(1-y_{kij}).
+\]
+
+其中 $\tau^q$ 是按照 AMR 速度系数和载货速度系数修正后的实际通行时间。本文取载货速度系数为 0.90，空驶和载货移动分别计算时间、成本和能耗。
+
+具体而言，若 P1 给出的基准通行时间为 $\tau_{ab}$，AMR $k$ 的速度系数为 $v_k$，则空驶和载货时间分别为：
+
+\[
+t^{empty}_{k,a\to b}=\frac{\tau_{ab}}{v_k},\quad
+t^{loaded}_{k,i}=\frac{\tau_{P_iD_i}}{0.9v_k}.
+\]
+
+延期变量定义为：
+
+\[
+T_i\ge C_i-l_i,\quad T_i\ge 0.
+\]
+
+电量安全约束通过任务链仿真检查实现。空驶、载货和服务分别按距离或服务时间计耗电；若某一任务插入导致 AMR 剩余电量低于安全阈值，则评价指标中的 \verb|energy_violation_count| 增加，字典序目标会优先压低该违反数。
+
+\subsection{目标规划口径}
+
+P2 采用目标规划中的优先级因子思想，将评价函数写成字典序目标：
+
+\[
+\min \operatorname{lex}
+\left(
+F_0^{path},F_0^{battery},
+F_1^{priority},F_1^{late},
+F_2,F_3
+\right).
+\]
+
+其中：
+
+\[
+F_1^{priority}=\sum_i priority_i\cdot late_i,\quad
+F_1^{late}=\sum_i late_i,
+\]
+
+\[
+F_2=30\sum_i priority_i T_i+20\sum_i T_i+5C_{\max},
+\]
+
+\[
+F_3=2\cdot empty\_cost+10(L_{\max}-L_{\min})+1\cdot total\_energy.
+\]
+
+字典序目标的含义是：先保证路径存在和电量安全，再减少高优先级延期任务和延期任务数量，最后优化时间效率与运行成本。这对应目标规划中的 $P_1\gg P_2\gg P_3$ 结构：高优先级任务延期属于服务承诺，不能被任何路径成本或负载均衡收益抵消。求解时可采用序贯解法，即先最小化高优先级目标，将其最优值固定后再进入下一层目标。
+
+\subsection{求解方法实现}
+
+P2 比较四类方法：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.12\linewidth}p{0.54\linewidth}p{0.24\linewidth}}
+\toprule
+方法 & 实现内容 & 对应知识点 \\
+\midrule
+m0 & 修复版贪心，按链式位置插入并检查路径、电量和时间 & 对照基线 \\
+m1 & 两阶段法：阶段一 0-1 指派模型，阶段二车内 Held-Karp 动态规划排序 & 整数规划、分支定界、动态规划 \\
+m2 & 联合 MILP + 五层目标规划序贯求解，使用分支定界/割平面求解 & 整数规划、目标规划、分支切割 \\
+m3 & regret-2 插入构造 + relocate/swap/reroute 局部搜索 & 局部最优思想、启发式优化 \\
+\bottomrule
+\end{tabular}
+\caption{P2 求解方法}
+\end{table}
+
+本文主实验采用 \verb|m2_milp_goal_programming+mixed|。在 \verb|amr_sequence_summary.csv| 中，4 台 AMR 的任务链为：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.18\linewidth}p{0.42\linewidth}p{0.20\linewidth}p{0.12\linewidth}}
+\toprule
+AMR & 任务序列 & 完成时间 & 剩余电量 \\
+\midrule
+AMR1 & T06 $\rightarrow$ T03 $\rightarrow$ T07 & 40.293444 & 54.7776 \\
+AMR2 & T02 $\rightarrow$ T05 $\rightarrow$ T10 & 40.840111 & 48.0854 \\
+AMR3 & T01 $\rightarrow$ T09 $\rightarrow$ T12 & 38.944691 & 67.5520 \\
+AMR4 & T04 $\rightarrow$ T08 $\rightarrow$ T11 & 38.596970 & 43.4962 \\
+\bottomrule
+\end{tabular}
+\caption{P2 当前静态任务分配结果}
+\end{table}
+
+该 P2 结果满足缺失衔接路径数 0、缺失载货路径数 0、电量阈值违反数 0、静态任务延期数 0。
+

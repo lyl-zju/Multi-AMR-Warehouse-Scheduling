@@ -1,0 +1,60 @@
+﻿\section{P4：动态事件与滚动时域重排}
+
+\subsection{动态事件}
+
+P4 读取 P3 的无冲突基准计划以及 \verb|dynamic_events.csv|，处理三类事件：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.20\linewidth}p{0.68\linewidth}}
+\toprule
+事件类型 & 处理方式 \\
+\midrule
+\verb|area_block| & 在给定时间窗内封锁矩形区域，检查并修复轨迹进入封锁区的问题 \\
+\verb|amr_delay| & 识别目标 AMR 在延误窗口内尚未完成的任务，释放其后续尾段重新安排 \\
+\verb|new_task| & 在释放时间后插入新任务，评估不同 AMR 和不同插入位置的影响 \\
+\bottomrule
+\end{tabular}
+\caption{P4 动态事件类型}
+\end{table}
+
+\subsection{滚动重排模型}
+
+设事件时刻为 $t_e$。P4 不重新打乱所有历史任务，而是把任务划分为固定集合 $J_{fix}$ 和可重排集合 $J_{free}$：
+
+\[
+J=J_{fix}\cup J_{free},\quad J_{fix}\cap J_{free}=\varnothing.
+\]
+
+已完成或已经进入执行轨迹的任务固定；受封锁、AMR 延误、新任务插入影响的任务及其同车后续尾段进入 $J_{free}$。对 $J_{free}$，P4 重新决定任务插入位置、候选路径和开始时间：
+
+\[
+\sum_{k\in K}x_{ki}=1,\quad \forall i\in J_{free}.
+\]
+
+路径选择仍限制在 P1 mixed 候选路径库中：
+
+\[
+\sum_{q\in Q_{D_iP_j}}z_{kijq}=y_{kij},\quad
+\sum_{q\in Q_{P_iD_i}}u_{kiq}=x_{ki}.
+\]
+
+时间递推与 P2 类似，但 AMR 的可用时间和所在节点由滚动时域开始时的状态决定：
+
+\[
+S_j\ge a_k+\tau_{n_kP_j}^{q}-M(1-y_{k,0_k,j}),
+\]
+
+\[
+S_j\ge C_i+\tau_{D_iP_j}^{q}-M(1-y_{kij}).
+\]
+
+封锁区约束通过轨迹采样检查实现。若某条轨迹在封锁事件时间窗内进入封锁矩形，则对应方案不可接受或需要等待/换路修复。AMR 延误约束要求目标 AMR 在延误窗口内不能安排与事件冲突的执行轨迹。
+
+\subsection{P4 目标口径}
+
+P4 以硬约束优先：剩余轨迹冲突、封锁区违规、AMR 延误违规、缺失路径和电量违反必须优先压到 0。在满足硬约束后，再比较延期服务质量、$C_{\max}$、路径成本、负载均衡、总能耗和扰动任务数。
+
+本文以滚动时域重排作为主方案；全局重排和仅等待作为对照策略。滚动方案优先保证动态事件后的可执行性，并在可行域内控制延期和扰动范围。
+

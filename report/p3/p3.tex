@@ -1,0 +1,79 @@
+﻿\section{P3：时空轨迹展开与冲突修复}
+
+\subsection{P3 的作用}
+
+P2 输出的是任务级调度表，并不直接保证多台 AMR 的二维 footprint 在同一时刻不会相撞。P3 的作用是读取 P2 任务序列和 P1 轨迹样本，把每一段空驶、等待、服务和载货过程展开为带绝对时间的二维轨迹表，再检测和修复冲突。
+
+P3 输出：
+
+\begin{itemize}
+  \item \verb|schedule_result.csv|：修复后的任务时间表；
+  \item \verb|trajectory_schedule.csv|：修复后的时空轨迹样本；
+  \item \verb|conflict_log.csv|：冲突记录；
+  \item \verb|repair_summary.csv|：不同修复模式的评价表。
+\end{itemize}
+
+\subsection{冲突检测模型}
+
+P3 检测两类冲突。第一类是空间 footprint 冲突。若两台 AMR 在时间上足够接近，且二维距离小于半径与安全裕量之和，则判定冲突：
+
+\[
+\|X_{k_1}(t)-X_{k_2}(t)\|<
+\rho_{k_1}+\rho_{k_2}+\sigma.
+\]
+
+实验参数为：
+
+\[
+\rho=0.25,\quad \sigma=0.10,\quad
+TIME\_TOLERANCE=0.25,\quad \Delta t=0.10.
+\]
+
+第二类是节点容量冲突。对 \verb|P*|、\verb|SORT*|、\verb|OUT*| 等关键节点，同一时刻最多允许一台 AMR 占用或作业：
+
+\[
+\sum_{k\in K}I(k\ \text{occupies node }v\text{ at }t)\le 1.
+\]
+
+为了避免只检测移动过程而漏掉服务等待，P3 显式建模了 \verb|wait_at_pickup|、\verb|service_at_pickup|、\verb|repair_wait_at_node|、\verb|mid_path_wait_transition| 和 \verb|mid_path_wait_loaded| 等静止占用片段。
+
+\subsection{修复策略与目标}
+
+P3 比较三种修复模式：
+
+\begin{enumerate}
+  \item \verb|wait|：只增加等待；
+  \item \verb|wait_reroute|：允许等待和同 OD 候选路径换路；
+  \item \verb|wait_reroute_resequence|：在等待和换路基础上，允许同一 AMR 内部相邻任务换序。
+\end{enumerate}
+
+P3 的选择规则为先最小化剩余冲突数，再最小化：
+
+\[
+\begin{aligned}
+J={}&100\cdot total\_delay+5C_{\max}+wait\_added\\
+&+2\cdot reroute\_count+20\cdot resequence\_count
++20\cdot initial\_wait\_added.
+\end{aligned}
+\]
+
+实验结果如下：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.28\linewidth}rrrrrr}
+\toprule
+模式 & 初始冲突 & 剩余冲突 & 总延期 & $C_{\max}$ & 新增等待 & 是否选中 \\
+\midrule
+wait & 21 & 0 & 0.0 & 46.59697 & 16.0 & 否 \\
+wait\_reroute & 21 & 0 & 0.0 & 46.59697 & 16.0 & 否 \\
+wait\_reroute\_resequence & 21 & 0 & 0.0 & 46.59697 & 16.0 & 是 \\
+\bottomrule
+\end{tabular}
+\caption{P3 冲突修复结果}
+\label{tab:p3-repair}
+\end{table}
+
+表 \ref{tab:p3-repair} 显示三种修复模式都能把 21 个初始冲突降为 0。虽然最终被选中的模式支持换路和换序，但本算例中实际最优修复并未触发换路或换序，主要通过载货路径中途暂停让行消解冲突。因此，P3 的结论不是“换路一定更好”，而是模型保留换路和换序能力；在本组数据下，等待修复已经足以把冲突降为 0。
+

@@ -1,0 +1,224 @@
+﻿% !TeX program = xelatex
+\PassOptionsToPackage{quiet}{fontspec}
+\documentclass[12pt,a4paper,UTF8]{ctexart}
+\usepackage{projectreport}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{float}
+\setlength{\headheight}{14.5pt}
+\setlength{\emergencystretch}{3em}
+
+\projecttitle{动态仓储环境下多 AMR 任务分配与路径协同调度优化模型研究}
+\projectcourse{运筹学}
+\projectauthor{XXX}
+\projectid{XXX}
+\projectschool{控制科学与工程学院}
+\projectteacher{赵斐}
+\projectdate{\today}
+
+\begin{document}
+\makeprojectcover
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+
+\section*{摘要}
+\addcontentsline{toc}{section}{摘要}
+
+本项目面向智能仓储中多台自主移动机器人（AMR）的取送货调度问题，围绕任务分配、路径选择、时间窗、电量约束、轨迹冲突和动态扰动重排建立一套分阶段优化模型。全文按五个工作包展开：P1 生成二维候选路径库，P2 完成任务分配与排序，P3 展开时空轨迹并修复冲突，P4 在通道封锁、AMR 延误和新增任务下进行滚动时域重排，P5 作为实验汇总、指标分析和管理解释的预留分析层。
+
+模型层面，本项目将多 AMR 调度抽象为带候选路径选择的取送货调度问题。P1 将二维地图上的路径搜索结果转化为成本表和轨迹表；P2 使用字典序目标规划处理可行性、服务等级、完工时间、空驶成本、负载均衡和能耗；P3 将 P2 的任务表展开为二维轨迹样本，检测 footprint 冲突和节点容量冲突，并通过等待、换路和同车相邻换序进行修复；P4 在动态事件到达后冻结已执行任务，对未来任务池进行后悔值插入、局部搜索、候选路径重评估和冲突等待修复；P5 汇总 P1--P4 的指标、图表和管理结论。
+
+实验在 4 台 AMR、12 个静态任务和 1 个动态新增任务的仓库算例上完成验证。P2 输出的静态计划无缺失路径、无电量阈值违反和无延期；P3 将 21 个初始时空冲突修复为 0，最终 $C_{\max}=46.59697$；P4 在 3 个动态事件下保持剩余轨迹冲突、封锁区违规和 AMR 延误违规均为 0，并将新增任务插入到 AMR4 的未来任务序列中，最终滚动重排方案的总延期为 23.405971，$C_{\max}=61.918082$。P5 在本文中预留统一指标框架，用于汇总 P1--P4 的实验结果。
+
+\section{问题背景与实现目标}
+
+\subsection{现实背景}
+
+智能仓储中的 AMR 需要在货架区、分拣台、出库口和充电点之间执行取送货任务。实际系统不是单台机器人独立寻路，而是多台机器人同时共享二维通道、路口和作业点。若只给每台机器人独立规划最短路径，容易出现任务负载不均、空驶距离过长、节点同时占用、狭窄通道会车冲突、动态封锁后大范围延误等问题。
+
+因此，本文关注的核心问题可以表述为：在给定仓库二维平面、AMR 状态、任务时间窗、候选路径和动态事件的条件下，如何决定任务分配、任务顺序、路径选择和执行时间，使调度方案满足路径可达、电量安全、时空无冲突和动态事件约束，并尽量降低延期、完工时间、空驶成本和扰动范围。
+
+\subsection{研究目标}
+
+本项目的研究目标包括：
+
+\begin{enumerate}
+  \item 构造二维仓库场景，统一节点、障碍物、货架区、封锁区和动态事件的数据接口。
+  \item 用 A*、VG、AVG、DAVG 和 mixed 候选路径库为 P2--P4 提供路径成本和轨迹样本。
+  \item 在 P2 中比较贪心、两阶段整数规划、联合 MILP 目标规划和后悔值插入局部搜索四类方法。
+  \item 在 P3 中把任务级计划展开为 $0.1$ 秒粒度轨迹，检测并修复 AMR footprint 冲突和节点容量冲突。
+  \item 在 P4 中处理通道封锁、AMR 延误和新增任务，形成动态滚动重排结果。
+  \item 为 P5 预留实验汇总层，统一沉淀 P1--P4 的核心指标、对比图表和运营解释。
+  \item 输出可复现实验 CSV、甘特图、路径图、敏感性分析图和动态演示 GIF。
+\end{enumerate}
+
+\section{系统数据与模块接口}
+
+\subsection{二维仓库建模}
+
+本文统一采用“二维仓库平面图 + 障碍物 + 轨迹采样”的建模口径。原始数据包括：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.28\linewidth}p{0.60\linewidth}}
+\toprule
+文件 & 含义 \\
+\midrule
+\verb|nodes.csv| & AMR 初始点、取货点、分拣点、出库点、充电点的二维坐标 \\
+\verb|amrs.csv| & AMR 初始位置、电量和速度系数 \\
+\verb|tasks.csv| & 静态任务的取货点、送货点、服务时间、时间窗和优先级 \\
+\verb|floor_zones.csv| & 仓库功能区，例如货架区、通道区和分拣区 \\
+\verb|floor_obstacles.csv| & 墙体、货架块和动态风险区域 \\
+\verb|dynamic_events.csv| & \verb|area_block|、\verb|amr_delay|、\verb|new_task| 三类动态事件 \\
+\bottomrule
+\end{tabular}
+\caption{原始数据接口}
+\label{tab:raw-data}
+\end{table}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.86\linewidth]{warehouse_floor_plan.png}
+\caption{P0 生成的二维仓库平面图}
+\label{fig:floor-plan}
+\end{figure}
+
+表 \ref{tab:raw-data} 给出了本文建模所需的基础数据，图 \ref{fig:floor-plan} 则将这些数据转化为可视化仓库场景。后续 P1 的路径搜索、P2 的任务调度和 P3/P4 的轨迹检测都以该二维场景为统一空间基准。
+
+\subsection{P0--P5 流水线}
+
+本文采用如下分阶段流水线：
+
+\begin{enumerate}
+  \item P0：读取仓库区域、节点和障碍物，输出 \verb|outputs/p0/warehouse_floor_plan.png|。
+  \item P1：为关键节点之间生成候选路径、路径成本矩阵和轨迹采样表。
+  \item P2：读取 P1 路径成本，输出任务分配和 AMR 内部任务序列。
+  \item P3：读取 P2 任务表和 P1 轨迹样本，展开时空轨迹并修复冲突。
+  \item P4：读取 P3 无冲突基准计划和动态事件，执行滚动时域重排。
+  \item P5：汇总 P1--P4 的实验指标、图表和管理解释，作为最终分析层预留。
+\end{enumerate}
+
+主流程命令如下：
+
+\begin{lstlisting}[language=bash]
+python .\src\p0_data_scene\plot_floor_plan.py
+python .\src\p1_candidate_paths\generate_candidate_paths.py --algorithm basic_astar
+python .\src\p2_assignment\build_mixed_paths.py
+python .\src\p2_assignment\assign_and_sequence_tasks.py --method m2 --p1-algorithm mixed
+python .\src\p3_schedule_conflicts\schedule_and_detect_conflicts.py --p1-algorithm mixed
+python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
+python .\src\p4_dynamic_reschedule\plot_p4_results.py
+\end{lstlisting}
+
+\section{模块分工与课程知识点}
+
+\subsection{五个工作包划分}
+
+为了体现多成员协作和完整建模链路，本文按 P0/P1、P2、P3、P4、P5 五个工作包组织报告结构。每个工作包既有清晰的输入输出边界，也对应运筹学课程中的不同知识点。
+
+\begin{table}[H]
+\centering
+\scriptsize
+\begin{tabular}{p{0.10\linewidth}p{0.10\linewidth}p{0.18\linewidth}p{0.35\linewidth}p{0.15\linewidth}}
+\toprule
+负责人 & 工作包 & 主题 & 主要任务 & 交付内容 \\
+\midrule
+李彦霖 & P0/P1 & 场景与路径生成 & 构造二维仓库平面图，建立障碍物与关键节点数据；比较 A*、VG、AVG、DAVG，并形成 mixed 多候选路径接口 & 场景图、路径库、轨迹样本 \\
+朱熠正 & P2 & 任务分配与排序 & 决定任务指派、AMR 内部任务顺序、空驶/载货路径选择，并校验时间窗与电量 & 任务分配表、方法对比 \\
+江亚楠 & P3 & 时空冲突修复 & 将任务级计划展开为轨迹级计划，检测 footprint 冲突和节点容量冲突，并通过等待、换路、换序修复 & 修复后时间表、冲突日志 \\
+倪振昊 & P4 & 动态滚动重排 & 处理通道封锁、AMR 延误和新增任务，冻结历史任务并重排未来任务池 & 动态重排表、可视化 \\
+张铭浥 & P5 & 实验汇总分析 & 汇总 P1--P4 的指标，形成综合评价、敏感性分析和管理解释；本文保留统一指标框架 & 综合指标表、管理建议 \\
+\bottomrule
+\end{tabular}
+\caption{五个工作包与小组分工}
+\label{tab:work-packages}
+\end{table}
+
+表 \ref{tab:work-packages} 展示了五个工作包之间的边界：P0/P1 负责场景和路径，P2 负责任务级调度，P3 负责轨迹级可执行性，P4 负责动态扰动，P5 负责实验汇总。这样的拆分能够对应五人分工，同时保证各模块之间通过明确数据接口串联。
+
+\subsection{课程知识点对应}
+
+\subsubsection{P1：图论最短路与候选路径生成}
+
+P1 对应图论和最短路思想。基础 A* 在二维栅格上搜索可行路径，VG 将仓库障碍物转化为可视图最短路问题，AVG 在路径长度之外加入转弯代价，DAVG 进一步把动态风险区域转化为路径代价。mixed 路径库把多种路径源融合为多候选集合，使“路径选择权”从底层寻路上升到调度层，体现了图论最短路与上层组合优化之间的衔接。
+
+\subsubsection{P2：任务分配中的整数规划、目标规划与求解方法}
+
+P2 是课程知识点最集中的部分。任务指派变量 $x_{ki}$、首任务变量 $s_{ki}$、任务顺序变量 $u_{kij}$ 和路径选择决策共同构成 0-1 混合整数规划。每个任务必须且只能分配给一台 AMR，每台 AMR 内部任务必须形成一条线性任务链，时间衔接和电量链约束保证调度结果在任务级别可执行。
+
+\paragraph{0-1 整数规划。}
+P2 的任务指派、任务排序和路径选择都属于典型离散决策。$x_{ki}$ 决定任务归属，$s_{ki}$ 决定每台 AMR 的首任务，$u_{kij}$ 决定同一 AMR 内任务之间的前后继关系。三类 0-1 变量共同描述“谁执行、先执行谁、走哪条路”，对应整数规划中用二进制变量表达组合决策的基本方法。
+
+\paragraph{链式序列与时间衔接。}
+P2 不仅要求每个任务被分配，还要求每台 AMR 的任务形成一条从初始点出发的线性链。时间递推约束保证后继任务必须在前序任务完成并空驶到取货点之后才能开始，最早开始时间和最晚完成时间则分别体现硬时间窗和延期软约束。
+
+\paragraph{目标规划。}
+在目标函数上，P2 采用目标规划的优先级因子思想，而不是简单加权和。模型先压低缺失路径和电量违反，再处理高优先级延期任务数、延期任务数、时间效率 $F_2$ 和运行成本 $F_3$。这种 $P_1\gg P_2\gg P_3$ 的字典序结构能够避免“用较低路径成本抵消高优先级任务延期”这类不合理结果。
+
+\paragraph{分支定界与割平面。}
+P2 的求解方法也对应多个课程章节。m1 的阶段一是 0-1 指派模型，可用分支定界求解；阶段二对每台 AMR 的车内任务排序采用 Held-Karp 型动态规划，状态为“已完成任务集合 + 当前末任务”。m2 将指派、排序、时间和电量统一写入联合 MILP，并通过分支定界和割平面思想求解。m3 使用 regret-2 后悔值插入构造初始解，再通过 relocate、swap、reroute 等邻域搜索逼近局部最优解，体现了启发式算法在较大规模调度中的工程价值。
+
+\paragraph{动态规划与启发式优化。}
+m1 的车内排序子问题可以看作动态规划：状态记录已完成任务集合和当前末任务，转移时尝试追加下一个任务并比较字典序评价。m3 则代表启发式优化思路，先用 regret-2 插入构造高质量初始解，再通过 relocate、swap、reroute 等邻域搜索降低目标值。这一组方法使 P2 同时具备“可解释的精确模型”和“可扩展的快速求解器”。
+
+\subsubsection{P3：网络容量约束与时空资源占用}
+
+P3 将 P2 的任务级计划展开为二维时空轨迹，本质上是在检查 AMR 对仓库空间资源的时间占用。footprint 距离阈值对应机器人之间的安全间隔约束，\verb|P*|、\verb|SORT*|、\verb|OUT*| 等节点容量约束对应网络资源容量限制。P3 的等待、换路和换序修复策略，体现了从“任务级可行”到“轨迹级可执行”的运筹学建模深化。
+
+\subsubsection{P4：动态优化与滚动时域重排}
+
+P4 对应动态优化和滚动时域思想。动态事件到达后，模型不重新打乱全部任务，而是划分固定任务集 $J_{fix}$ 和可重排任务集 $J_{free}$，只在未来窗口内对受影响任务进行局部重优化。这种方法在可行性、服务水平和计划稳定性之间取得折中，适合实际仓储系统中“边执行、边调整”的运行特点。
+
+\subsubsection{P5：灵敏度分析与管理解释}
+
+P5 面向实验汇总和管理解释，对应灵敏度分析和决策支持。通过汇总 AMR 数量、任务密度、路径源、动态事件等实验指标，P5 可以回答“增加机器人是否仍有边际收益”“瓶颈来自 AMR 数量还是通道容量”“动态事件下应全局重排还是局部重排”等管理问题，从而把算法结果转化为仓库运营建议。
+
+\subsection{核心成果概览}
+
+为了突出模型链路的实际效果，本文将最关键的实验结论概括如下：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.24\linewidth}p{0.30\linewidth}p{0.34\linewidth}}
+\toprule
+成果点 & 关键结果 & 含义 \\
+\midrule
+P1 多候选路径库 & mixed 平均每个 OD 有 1.77 条候选，最多 4 条 & 调度层不再被单一路径源绑定，可在多路径中择优 \\
+P2 联合优化 & m2/m3 将 $C_{\max}$ 从 m0 的 49.015 降至 40.578 & 任务指派与排序联合建模显著改善系统完工时间 \\
+P2 快速启发式 & m3 与 m2 达到相同 F2/F3，但 0.198s 对 116.728s & 启发式在本算例达到精确模型质量，速度提升约 589 倍 \\
+P3 冲突消解 & 初始 21 个时空冲突全部修复为 0 & 证明任务级可行不等于轨迹级可执行，P3 层不可省略 \\
+P4 动态重排 & 轨迹冲突、封锁违规、AMR 延误违规均为 0 & 动态扰动下仍能保持计划可执行性 \\
+\bottomrule
+\end{tabular}
+\caption{核心成果概览}
+\label{tab:core-results}
+\end{table}
+
+表 \ref{tab:core-results} 的作用是把后文各模块的实验证据先集中呈现。可以看到，本文的贡献不是单个算法的局部改进，而是从路径候选、任务优化、轨迹冲突修复到动态重排的完整闭环：P1 提供路径选择空间，P2 给出高质量任务级计划，P3 保证轨迹级可执行，P4 则验证动态扰动下的鲁棒性。
+
+\input{p1/p1}
+\input{p2/p2}
+\input{p3/p3}
+\input{p4/p4}
+\input{p5/p5}
+
+\section{实验结果与分析}
+\input{p1/experiment}
+\input{p2/experiment}
+\input{p3/experiment}
+\input{p4/experiment}
+\input{p5/experiment}
+
+\section{结论}
+
+本项目最终形成了一套动态仓储多 AMR 调度优化系统。P1 负责二维候选路径生成，P2 将任务分配和任务排序建模为带路径选择、电量检查和目标规划优先级的调度问题，P3 从轨迹层面验证并修复多机器人冲突，P4 在动态事件下执行滚动时域重排，P5 预留为实验汇总、指标分析和管理解释层。
+
+实验结果说明，P2 的任务级计划虽然已经满足路径、电量和时间窗要求，但展开到二维时空后仍会产生 21 个轨迹冲突；经过 P3 的等待修复后，冲突数降为 0。动态事件到达后，P4 能在不重排全部历史任务的情况下处理封锁、AMR 延误和新增任务，并得到剩余轨迹冲突、封锁区违规、AMR 延误违规均为 0 的滚动重排方案。
+
+整体来看，项目将路径库、任务分配、时空冲突修复和动态扰动处理串联为一个统一接口体系。报告中的模型、算法和实验结果共同说明：任务级排程必须经过轨迹级校验，动态扰动需要在保持可执行性的前提下进行局部重排，而 P5 汇总层能够进一步把这些结果转化为面向仓库运营的管理建议。
+
+\projectreference
+\end{document}

@@ -1,0 +1,68 @@
+﻿\section{P1：二维候选路径生成}
+
+P1 是整个系统的路径基础层。它不直接决定任务由谁执行，也不处理多机器人避碰，而是在二维仓库平面上为关键节点对生成候选路径、路径成本、栅格轨迹和轨迹采样表。下游 P2 使用 P1 的成本表做任务分配与排序，P3/P4 使用 P1 的轨迹样本展开二维时空轨迹。
+
+\subsection{算法框架}
+
+P1 实现了 A*、VG、AVG、DAVG 四类路径生成算法，并进一步通过 mixed 路径库形成多候选接口：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.20\linewidth}p{0.34\linewidth}p{0.34\linewidth}}
+\toprule
+算法 & 建模含义 & 当前实现中的作用 \\
+\midrule
+\verb|basic_astar| & 栅格最短路基线 & 二维栅格 8 邻域 A*，生成基础可行路径 \\
+\verb|vg| & 可视图最短路 & 在障碍物顶点可视图上生成较短几何路径 \\
+\verb|avg| & 增强可视图 & 在 VG 基础上加入转弯代价 \\
+\verb|davg| & 动态增强可视图 & 在 AVG 基础上加入动态区域代价 \\
+\verb|mixed| & 多候选融合库 & 融合四种 P1 输出，为 P2/P3/P4 提供多候选路径库 \\
+\bottomrule
+\end{tabular}
+\caption{P1 路径算法在最终系统中的定位}
+\label{tab:p1-methods}
+\end{table}
+
+表 \ref{tab:p1-methods} 说明 P1 并不是简单比较几种最短路算法，而是为后续调度层构造不同偏好的候选路径。A* 偏重栅格可达性，VG 偏重几何最短，AVG 引入转弯平滑性，DAVG 引入动态风险代价，mixed 则把这些不同路径偏好融合成调度层可选择的路径库。
+
+\subsection{输出接口}
+
+P1 的主要输出位于 \verb|data/processed/p1/<algorithm>/|：
+
+\begin{itemize}
+  \item \verb|key_nodes.csv|：参与路径规划的关键节点；
+  \item \verb|path_cost.csv|：面向 P2 的 OD 路径成本表；
+  \item \verb|path_grid_cells.csv|：路径穿越栅格记录；
+  \item \verb|path_trajectory_samples.csv|：面向 P3/P4 的相对时间轨迹采样；
+  \item \verb|path_cost_matrix_time.csv| 和 \verb|path_cost_matrix_total.csv|：时间矩阵和综合成本矩阵。
+\end{itemize}
+
+其中，\verb|path_cost.csv| 提供 \verb|from_node|、\verb|to_node|、\verb|path_uid|、\verb|distance|、\verb|travel_time|、\verb|turn_cost|、\verb|dynamic_cost|、\verb|total_cost| 和 \verb|planning_status|。P2 加载时会过滤 \verb|planning_status != ok| 的路径，避免不可达 OD 被误用于调度。
+
+\verb|path_trajectory_samples.csv| 提供相对出发时刻的二维轨迹样本，包括 \verb|offset_time|、\verb|x|、\verb|y|、\verb|theta|、\verb|speed| 和 \verb|footprint_radius|。P3/P4 读取该表后，将相对时间平移到具体任务的绝对开始时间，从而形成可检测冲突的时空轨迹。
+
+\subsection{mixed 多候选路径库}
+
+单一 P1 算法对同一 OD 通常只输出一条路径，无法充分体现“候选路径选择”。因此本文通过 \verb|build_mixed_paths.py| 融合 \verb|basic_astar|、\verb|vg|、\verb|avg| 和 \verb|davg| 的输出，生成 \verb|data/processed/p1/mixed/|。mixed 路径库会给 \verb|path_uid| 加算法前缀，并在几何去重后保留多条候选。本算例融合后平均每个 OD 有 1.77 条候选路径，最多 4 条。
+
+\begin{figure}[!htbp]
+\centering
+\begin{minipage}{0.48\linewidth}
+\centering
+\includegraphics[width=\linewidth]{p1_candidate_paths_IN1_P5.png}
+\end{minipage}\hfill
+\begin{minipage}{0.48\linewidth}
+\centering
+\includegraphics[width=\linewidth]{p1_basic_astar_cost_matrix_time.png}
+\end{minipage}
+\caption{P1 候选路径与路径时间成本矩阵示例}
+\label{fig:p1-path-cost}
+\end{figure}
+
+图 \ref{fig:p1-path-cost} 给出了 P1 输出的两个层次：上图展示单个 OD 对的二维路径几何，下图展示关键节点之间的通行时间矩阵。前者说明路径规划已经落到具体仓库平面，后者则把几何路径转化为 P2 可直接调用的成本输入。也就是说，P1 完成了从“二维空间路径”到“调度成本矩阵”的转换。
+
+\subsection{与后续模块的关系}
+
+P1 的设计边界是“生成候选路径与轨迹样本”，不在 P1 内部求解全局多机器人调度。这样可以让路径算法与调度算法解耦：路径规划层只关心二维可达性、距离、转弯和动态风险；P2--P4 再根据任务、时间窗、电量和冲突约束选择和调整这些候选路径。
+

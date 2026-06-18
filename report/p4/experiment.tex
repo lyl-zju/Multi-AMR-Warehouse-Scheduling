@@ -1,0 +1,68 @@
+﻿\subsection{P4 动态滚动重排结果}
+
+P4 读取 12 个 P3 基准任务和 3 个动态事件，其中 2 个事件直接影响计划。最终滚动时域重排结果如下：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.42\linewidth}r}
+\toprule
+指标 & 数值 \\
+\midrule
+动态事件数 & 3 \\
+受影响事件数 & 2 \\
+新增动态任务数 & 1 \\
+变更或插入任务数 & 4 \\
+P3 基准 $C_{\max}$ & 46.596970 \\
+P4 新 $C_{\max}$ & 61.918082 \\
+P4 总延期 \verb|total_delay| & 23.405971 \\
+相对基准正向完工偏移 \verb|TotalAddedDelay| & 43.996446 \\
+剩余轨迹冲突 & 0 \\
+封锁区违规 & 0 \\
+AMR 延误违规 & 0 \\
+缺失路径数 & 0 \\
+电量阈值违反数 & 0 \\
+F2 & 2182.068048 \\
+F3 & 507.179375 \\
+\bottomrule
+\end{tabular}
+\caption{P4 滚动重排主结果}
+\label{tab:p4-summary}
+\end{table}
+
+表 \ref{tab:p4-summary} 展示动态事件后的最终可行性和服务质量。这里需要区分两个指标：\verb|total_delay| 是按任务时间窗计算的延期总量，数值为 23.405971；\verb|TotalAddedDelay| 是相对 P3/新任务基线的正向完工时间偏移总和，数值为 43.996446。二者含义不同，不能混写。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.90\linewidth]{p4_gantt_events.png}
+\caption{P4 动态事件与重排甘特图}
+\label{fig:p4-gantt}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.90\linewidth]{p4_trajectory_map.png}
+\caption{P4 重排后轨迹地图}
+\label{fig:p4-map}
+\end{figure}
+
+图 \ref{fig:p4-gantt} 从时间轴上展示动态事件与任务重排之间的关系，图 \ref{fig:p4-map} 则从仓库平面上展示重排后的轨迹空间分布。两张图合在一起说明：P4 不只是改变任务表中的开始时间，而是在“时间可行”和“空间可行”两个维度同时修复计划。
+
+该实验的关键变化是 AMR2 的 T05 与延误事件 E02 时间窗相交。P4 不再把该任务视为不可改历史任务，而是释放 AMR2 的重叠任务及其后续尾段，从延误结束后重新安排，最终保证 \verb|delayed_amr_violation_count=0|。新增任务 T13 被插入 AMR4，并前置于 T11。这样会额外扰动 T11，但避免把 T13 压在 AMR2 的延误尾段上，使滚动重排方案在硬约束可行的同时降低延期和完工时间。该结果说明动态调度并不是简单“整体后移”，而是在冻结历史任务、控制扰动范围和消除动态违规之间进行局部重优化。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p4_event_impact_metrics.png}
+\caption{P4 事件影响与可行性指标}
+\label{fig:p4-impact}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p4_method_comparison.png}
+\caption{P4 方法对比输出}
+\label{fig:p4-method}
+\end{figure}
+
+图 \ref{fig:p4-impact} 将动态事件影响、硬约束违反数和目标函数指标集中展示，图 \ref{fig:p4-method} 则给出重排策略的对照输出。二者共同强调 P4 的评价顺序：先看轨迹冲突、封锁违规和 AMR 延误违规是否清零，再比较延期、扰动任务数和完工时间。这一顺序与实际仓储系统一致，因为不可执行的低成本方案没有运营意义。
+

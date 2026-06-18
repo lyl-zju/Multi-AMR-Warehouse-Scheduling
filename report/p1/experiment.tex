@@ -1,0 +1,12 @@
+\subsection{路径源对调度结果的影响}
+
+路径源对比显示，不同 P1 算法会改变 P2 的调度质量。基础算例中，m3@avg 的 $C_{\max}$ 为 40.373111，m3@vg 为 40.547273，m3@mixed 为 40.577778，m3@davg 为 44.807677。DAVG 并非在静态调度中必然最优，因为它引入动态风险代价后可能选择更保守路径；其主要价值在动态风险或封锁场景中。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p2_path_source_comparison.png}
+\caption{不同 P1 路径源对 P2 结果的影响}
+\label{fig:p2-path-source}
+\end{figure}
+
+图 \ref{fig:p2-path-source} 反映 P1 和 P2 的联动关系：路径源不是单纯的前处理细节，而会直接影响上层调度目标。DAVG 在静态算例中因为动态风险代价更保守，结果反而不一定最优；mixed 路径库的价值在于降低对单一路径算法的依赖，使调度器可以在多种路径风格之间自动选择。
