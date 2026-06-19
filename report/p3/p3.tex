@@ -1,33 +1,70 @@
-﻿\section{P3：时空轨迹展开与冲突修复}
+\section{P3：时空轨迹展开与冲突修复}
 
-\subsection{P3 的作用}
+\subsection{模块定位与输入输出}
 
-P2 输出的是任务级调度表，并不直接保证多台 AMR 的二维 footprint 在同一时刻不会相撞。P3 的作用是读取 P2 任务序列和 P1 轨迹样本，把每一段空驶、等待、服务和载货过程展开为带绝对时间的二维轨迹表，再检测和修复冲突。
+P2 输出的是任务级调度表，已经决定了每个任务由哪台 AMR 执行、每台 AMR 内部按什么顺序执行任务，以及每段空驶和载货移动选用哪条 P1 候选路径。但任务级计划并不直接等价于可执行轨迹。两台 AMR 即使在任务时间窗、电量和路径可达性上都满足要求，仍可能在同一时间进入同一狭窄通道、同一取货点或同一分拣点，导致二维 footprint 冲突。因此，P3 的作用是把 P2 的静态任务计划推进到执行层，生成带绝对时间的二维时空轨迹，并在轨迹层面检测和修复多 AMR 冲突。
 
-P3 输出：
+从模块边界看，P3 不重做 P2 的全局任务分配，也不临时生成新的几何路径。它在 P2 给定的任务分配和任务顺序基础上进行局部执行修复；若需要换路，也只从 P1 mixed 路径库中选择同 OD 的候选路径；若需要换序，也只允许同一 AMR 内部相邻任务的局部交换。这样的边界保证了 P2、P3 和 P4 的职责清晰：P2 决定“谁执行、按什么顺序执行”，P3 判断“这些任务在二维时空中能否安全执行”，P4 则在 P3 无冲突基准计划上处理动态封锁、AMR 延误和新增任务。
+
+从系统分工看，P3 的价值不在于替换 P1 的路径生成或 P2 的任务级优化，而在于把前序模块的静态计划补上执行层闭环。P1 提供可走路径，P2 形成较优任务表，P3 进一步给出可检查、可修复、可交付给 P4 的时空轨迹。因此，P3 的工作量主要体现在轨迹展开、冲突检测、局部修复、过程日志、可视化和下游接口的一体化上；其结果也更容易通过“初始冲突数、修复后冲突数、轨迹采样表、动画快照”形成清晰证据链。
+
+P3 的核心输入为：
 
 \begin{itemize}
-  \item \verb|schedule_result.csv|：修复后的任务时间表；
-  \item \verb|trajectory_schedule.csv|：修复后的时空轨迹样本；
-  \item \verb|conflict_log.csv|：冲突记录；
-  \item \verb|repair_summary.csv|：不同修复模式的评价表。
+  \item \verb|data/processed/p2/assignment_result.csv|：P2 输出的任务分配、任务顺序、时间窗、路径选择和电量结果；
+  \item \verb|data/processed/p1/mixed/path_cost.csv|：P1 mixed 路径库中的路径成本和同 OD 候选，用于换路候选生成；
+  \item \verb|data/processed/p1/mixed/path_trajectory_samples.csv|：P1 路径几何采样点，用于展开二维时空轨迹。
 \end{itemize}
+
+P3 的输出为：
+
+\begin{itemize}
+  \item \verb|schedule_result.csv|：修复后的任务级时间表，表头严格沿用 P2 输出格式；
+  \item \verb|trajectory_schedule.csv|：修复后的 $0.1$ 秒粒度时空轨迹表，是 P4 做动态事件判断和二次冲突检查的主要轨迹接口；
+  \item \verb|conflict_log.csv|：每轮冲突修复的过程日志；
+  \item \verb|repair_summary.csv|：三种修复模式的汇总指标和最终选择。
+\end{itemize}
+
+其中，\verb|schedule_result.csv| 保持 P2 表头兼容，是为了降低 P4 接入成本；P4 可以继续按 P2 的字段结构读取任务级时间表，只需要把 P3 更新后的 \verb|estimated_start_time|、\verb|estimated_finish_time|、\verb|estimated_delay| 和 \verb|estimated_waiting| 作为最终执行时间读取。另一方面，\verb|trajectory_schedule.csv| 记录最终实际使用的轨迹点和等待片段，是 P3 相比 P2 新增的执行层信息。
+
+\subsection{轨迹展开模型}
+
+P3 首先按 \verb|amr_id| 和 \verb|sequence_order| 遍历 P2 任务表。对每台 AMR，算法从初始节点出发，依次处理该 AMR 的任务链。对每个任务 $i$，执行过程被拆分为四类基本片段：
+
+\begin{enumerate}
+  \item \verb|transition|：从当前节点空驶到任务取货点；
+  \item \verb|wait_at_pickup|：若早于任务最早开始时间到达，则在取货点等待；
+  \item \verb|service_at_pickup|：取货服务时间；
+  \item \verb|loaded|：从取货点载货运行到送货点。
+\end{enumerate}
+
+若 P3 插入修复等待，还会产生若干静止轨迹片段。例如，\verb|repair_wait_at_node| 表示任务开始前在节点等待，\verb|mid_path_wait_transition| 表示空驶路径中途暂停，\verb|mid_path_wait_loaded| 表示载货路径中途暂停。所有片段最终都被转化为统一的轨迹样本：
+
+\[
+(k,i,o,s,t,x(t),y(t),\theta(t),v(t),\rho),
+\]
+
+其中 $k$ 为 AMR，$i$ 为任务，$o$ 为车内执行序号，$s$ 为轨迹段类型，$t$ 为全局绝对时间，$(x(t),y(t))$ 为二维坐标，$\theta(t)$ 为朝向，$v(t)$ 为速度，$\rho$ 为 AMR footprint 半径。对移动片段，P3 按 P2 实际行驶时间对 P1 的路径采样点做时间缩放和插值；对等待和服务片段，P3 在固定坐标处生成速度为 0 的轨迹点。
+
+这一展开过程有两个作用。第一，它把任务级的开始时间和完成时间转化为实际的空间占用过程，使后续冲突检测可以基于二维坐标进行。第二，它显式保留等待和服务过程，避免只检测移动轨迹而漏掉取货点、分拣点等关键节点的静止占用。对于多 AMR 仓储调度，这一点很重要，因为冲突不只发生在移动通道中，也可能发生在任务服务点。
 
 \subsection{冲突检测模型}
 
-P3 检测两类冲突。第一类是空间 footprint 冲突。若两台 AMR 在时间上足够接近，且二维距离小于半径与安全裕量之和，则判定冲突：
+P3 检测两类冲突。第一类是空间 footprint 冲突。设 $X_k(t)=(x_k(t),y_k(t))$ 表示 AMR $k$ 在时刻 $t$ 的二维位置，$\rho_k$ 为 footprint 半径，$\sigma$ 为安全裕量。当两台 AMR 在相近时间点上的中心距离小于半径与安全裕量之和时，判定为空间冲突：
 
 \[
 \|X_{k_1}(t)-X_{k_2}(t)\|<
 \rho_{k_1}+\rho_{k_2}+\sigma.
 \]
 
-实验参数为：
+当前实验参数为：
 
 \[
 \rho=0.25,\quad \sigma=0.10,\quad
 TIME\_TOLERANCE=0.25,\quad \Delta t=0.10.
 \]
+
+因此，两台 AMR 的空间冲突距离阈值为 $0.25+0.25+0.10=0.60$。其中 \verb|TIME_TOLERANCE| 用于比较相近时间点上的两台 AMR 位置，$\Delta t$ 是轨迹展开的采样间隔。该检测方式直接对应题目中的二维 footprint 冲突要求，比只在抽象图边上设置容量更贴近仓库平面场景。
 
 第二类是节点容量冲突。对 \verb|P*|、\verb|SORT*|、\verb|OUT*| 等关键节点，同一时刻最多允许一台 AMR 占用或作业：
 
@@ -35,19 +72,38 @@ TIME\_TOLERANCE=0.25,\quad \Delta t=0.10.
 \sum_{k\in K}I(k\ \text{occupies node }v\text{ at }t)\le 1.
 \]
 
-为了避免只检测移动过程而漏掉服务等待，P3 显式建模了 \verb|wait_at_pickup|、\verb|service_at_pickup|、\verb|repair_wait_at_node|、\verb|mid_path_wait_transition| 和 \verb|mid_path_wait_loaded| 等静止占用片段。
+节点容量冲突用于补充空间距离判断。即使两台 AMR 的中心距离没有触发普通空间冲突，只要它们在同一时刻静止占用同一取货点、分拣点或出库点，也应视为不可执行方案。P3 将等待、服务和中途停车都纳入轨迹表，因此节点容量约束可以覆盖移动之外的静止作业过程。
 
-\subsection{修复策略与目标}
+需要说明的是，P3 的冲突检测基于离散采样。采样方法直观、可复现，也便于与 P4 动态事件检查共享同一轨迹表；但它的精度依赖采样间隔。如果采样间隔过大，可能漏掉持续时间很短的冲突；如果采样间隔过小，则会显著增加轨迹行数和两两比较开销。当前 $0.1$ 秒粒度在本算例中能够满足展示和验证需要，后续在高速或高密度场景中仍需进一步分析采样误差。
 
-P3 比较三种修复模式：
+\subsection{局部修复策略}
+
+P3 采用启发式局部修复方法。每一轮修复首先选择当前最早发生的冲突，然后根据冲突涉及的 AMR、任务和路径生成候选动作。候选动作包括：
+
+\begin{itemize}
+  \item \verb|wait_before_task|：在某个任务开始前增加等待；
+  \item \verb|mid_path_wait|：在冲突点前的路径中途停车等待；
+  \item \verb|reroute|：从 P1 mixed 路径库中选择同 OD 替代路径；
+  \item \verb|resequence|：对同一 AMR 内部相邻任务做局部交换。
+\end{itemize}
+
+每个候选动作都会形成一个新的修复状态。P3 根据该状态重新生成任务时间表和轨迹表，再重新检测冲突并计算目标函数。若某个候选动作能够改善“剩余冲突数、目标函数值”这一二元指标，则采用其中最优动作进入下一轮；若没有任何候选动作能够改善当前状态，则停止该模式的修复。
+
+当前 P3 比较三种修复模式：
 
 \begin{enumerate}
-  \item \verb|wait|：只增加等待；
-  \item \verb|wait_reroute|：允许等待和同 OD 候选路径换路；
-  \item \verb|wait_reroute_resequence|：在等待和换路基础上，允许同一 AMR 内部相邻任务换序。
+  \item \verb|wait|：只通过等待修复冲突；
+  \item \verb|wait_reroute|：在等待基础上允许同 OD 换路；
+  \item \verb|wait_reroute_resequence|：在等待和换路基础上允许同车相邻换序。
 \end{enumerate}
 
-P3 的选择规则为先最小化剩余冲突数，再最小化：
+其中，\verb|mid_path_wait| 是当前算例中最主要的实际修复动作。它不是把整项任务简单后移，而是在 AMR 沿原路径行驶到冲突点前某个位置时停车等待，待对方通过后继续沿原路径前进。当前提前停车候选为 $0.8$、$1.0$、$1.5$、$2.0$、$3.0$、$4.0$ 秒。与任务开始前等待相比，中途等待更接近实际执行层让行，因为它只在冲突发生前局部插入等待，而不是把整个任务链从一开始整体后移。
+
+在得到 0 冲突方案后，P3 还会执行等待压缩。具体做法是尝试减少已经插入的等待时间，每次缩短后重新检测冲突；只有仍然保持 0 冲突的缩短方案才会被接受。这一设计避免了“为了消除冲突而无限增加等待”的问题，使最终方案保留满足无冲突要求所需的较小等待量。
+
+\subsection{目标函数与选择规则}
+
+P3 的选择规则是先最小化剩余冲突数，再最小化执行层目标函数：
 
 \[
 \begin{aligned}
@@ -57,12 +113,14 @@ J={}&100\cdot total\_delay+5C_{\max}+wait\_added\\
 \end{aligned}
 \]
 
-实验结果如下：
+该目标函数服务于执行层冲突修复，而非重新求解 P2 的全局任务分配问题。其含义可以分为三层。第一，剩余冲突数具有最高优先级，不可执行方案即使完工时间较短也不应被选中。第二，在冲突数相同的情况下，模型尽量减少任务延期和 $C_{\max}$，避免修复动作破坏原计划的服务质量。第三，目标函数对等待、换路、换序和开局等待设置惩罚，避免为了局部冲突修复而过度扰动原计划。
+
+三种修复模式的当前结果如下：
 
 \begin{table}[H]
 \centering
-\small
-\begin{tabular}{p{0.28\linewidth}rrrrrr}
+\scriptsize
+\begin{tabular}{p{0.27\linewidth}rrrrrr}
 \toprule
 模式 & 初始冲突 & 剩余冲突 & 总延期 & $C_{\max}$ & 新增等待 & 是否选中 \\
 \midrule
@@ -71,9 +129,85 @@ wait\_reroute & 21 & 0 & 0.0 & 46.59697 & 16.0 & 否 \\
 wait\_reroute\_resequence & 21 & 0 & 0.0 & 46.59697 & 16.0 & 是 \\
 \bottomrule
 \end{tabular}
-\caption{P3 冲突修复结果}
+\caption{P3 冲突修复模式对比}
 \label{tab:p3-repair}
 \end{table}
 
-表 \ref{tab:p3-repair} 显示三种修复模式都能把 21 个初始冲突降为 0。虽然最终被选中的模式支持换路和换序，但本算例中实际最优修复并未触发换路或换序，主要通过载货路径中途暂停让行消解冲突。因此，P3 的结论不是“换路一定更好”，而是模型保留换路和换序能力；在本组数据下，等待修复已经足以把冲突降为 0。
+表 \ref{tab:p3-repair} 显示，三种模式都能将 21 个初始冲突修复为 0，且总延期、$C_{\max}$ 和新增等待完全相同。最终被标记为 \verb|wait_reroute_resequence|，是因为在并列情况下该模式作为能力最完整的方案被选中。需要强调的是，本算例中实际换路次数和换序次数均为 0，因此当前结果只能说明等待，尤其是载货路径中途等待，是本组数据下的主要修复动作，换路和换序在当前地图下未带来超过停车等待的明显收益。
 
+但从机制上看，后两类动作仍然有保留价值。若仓库地图存在差异明显的同 OD 候选路径，且冲突集中在某些狭窄通道或瓶颈节点，提高等待惩罚或降低换路惩罚后，换路就可能通过绕开拥堵区减少等待或降低 $C_{\max}$。若同一 AMR 的相邻任务在时间窗上具有一定弹性，且当前任务链会把车辆推到同一瓶颈时刻，则同车局部换序也可能通过改变到达时序减少冲突。换言之，等待是当前算例的实际发力点，换路和换序更像为高拥堵、多路径差异或强时序耦合场景预留的高级候选动作。
+
+\subsection{可视化结果与轨迹解释}
+
+为了更直观地说明 P3 的作用，本文从 \verb|outputs/p3| 中的动画结果截取了原始轨迹和最终修复轨迹在同一时刻的画面，如图 \ref{fig:p3-original-vs-repaired-snapshot} 所示。左图对应 P2 原始计划直接展开后的运行状态，右图对应 P3 选中方案 \verb|wait_reroute_resequence| 修复后的运行状态。两张图取自同一近似时刻，便于比较 P3 修复前后的空间占用差异。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.98\linewidth]{p3_original_vs_repaired_snapshot.png}
+\caption{P3 原始轨迹与修复后轨迹快照对比}
+\label{fig:p3-original-vs-repaired-snapshot}
+\end{figure}
+
+图 \ref{fig:p3-original-vs-repaired-snapshot} 左侧可以看到，在原始 P2 轨迹中，AMR2 与 AMR4 在货架区中上部附近距离过近，触发 C001 空间冲突。该冲突不是任务表层面能够直接发现的问题，因为 P2 只知道两台 AMR 的任务顺序、开始时间和路径编号，并没有逐时刻比较二维 footprint。右侧修复后，同一时刻 AMR2 与 AMR4 的空间位置已经拉开，图中不再标记冲突。这说明 P3 的等待修复并不是简单修改一个汇总指标，而是改变了 AMR 在具体时刻、具体位置上的空间占用。
+
+从轨迹形态看，P3 修复后并没有让 AMR 离开原路径绕行，也没有跨 AMR 重分配任务，而是通过路径中途停车让行改变相对到达时刻。当前最终轨迹表中出现 163 条 \verb|mid_path_wait_loaded| 记录，正是这种中途等待的轨迹化表达。换句话说，P3 把“让一台车等一下”落实为可检查的时空点：等待发生在哪条路径上、等待时刻是多少、等待位置坐标是多少、等待期间 footprint 如何占用空间，都被记录在 \verb|trajectory_schedule.csv| 中。
+
+这一可视化也解释了为什么 P3 输出需要同时保留 \verb|schedule_result.csv| 和 \verb|trajectory_schedule.csv|。前者能够告诉下游模块任务完成时间、等待时间和延期情况，后者则能告诉下游模块每台 AMR 在任意时刻实际位于仓库平面的哪个位置。对于 P4 来说，动态封锁区、AMR 延误窗口和新增任务插入都需要基于后一类轨迹信息判断，单纯读取任务级时间表是不够的。
+
+除图 \ref{fig:p3-original-vs-repaired-snapshot} 所示的静态快照外，P3 还在 \verb|outputs/p3| 中输出了原始轨迹动画和三种修复模式动画。动画中每台 AMR 用带半径的圆表示 footprint，尾迹表示已经走过的轨迹，红色圆圈标识冲突位置；当某台 AMR 完成全部任务后，其显示会淡化，表示不再参与后续冲突检测。需要注意的是，动画只承担可视化作用，不能替代 CSV 文件中的轨迹与指标记录；真正用于判断最终方案是否无冲突的依据仍是 \verb|repair_summary.csv| 和 \verb|trajectory_schedule.csv|。
+
+这些动画的意义不是替代 CSV 结果，而是用于解释 CSV 结果背后的执行过程。表格能够说明“冲突数从 21 变成 0”，动画则能够说明“冲突发生在哪里、哪台车等待、等待后空间关系如何变化”。将静态快照、修复摘要表和冲突日志结合起来，可以形成较完整的证据链：原始任务级计划存在执行冲突，P3 通过局部中途等待改变轨迹时序，最终输出的时空轨迹重新检测后无冲突。
+
+\subsection{输出文件与复现实验检查}
+
+P3 在输出目录中保留了四类结构化文件。它们分别服务于最终执行计划、轨迹级验证、修复过程追踪和模式对比，如表 \ref{tab:p3-output-files} 所示。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.30\linewidth}p{0.56\linewidth}}
+\toprule
+输出文件 & 作用 \\
+\midrule
+\texttt{schedule\_result.csv} & 修复后的任务级时间表，表头沿用 P2 输出格式，记录每个任务的最终开始时间、完成时间、等待时间、延期、路径编号和电量变化。 \\
+\texttt{trajectory\_schedule.csv} & 修复后的二维时空轨迹表，当前共有 1800 条采样记录，是判断动态封锁、AMR 延误和二次冲突的主要执行层输入。 \\
+\texttt{conflict\_log.csv} & 修复过程日志，记录每轮冲突时间、冲突类型、候选动作、目标 AMR、目标任务、等待量和修复后冲突数。 \\
+\texttt{repair\_summary.csv} & 三种修复模式的指标汇总，记录初始冲突、剩余冲突、总延期、$C_{\max}$、新增等待、换路次数、换序次数和最终选中标记。 \\
+\bottomrule
+\end{tabular}
+\caption{P3 结构化输出文件}
+\label{tab:p3-output-files}
+\end{table}
+
+从复现实验角度看，P3 的结果可以分为两层验证。第一层是指标验证：读取 \verb|repair_summary.csv|，检查最终选中模式的 \verb|selected=1| 且 \verb|remaining_conflicts=0|。当前结果中，三种模式的初始冲突数均为 21，剩余冲突数均为 0，最终选中 \verb|wait_reroute_resequence|。第二层是轨迹验证：读取 \verb|trajectory_schedule.csv|，重新基于绝对时间、二维坐标和 footprint 半径检测空间冲突，并基于轨迹段类型检测节点容量冲突。只有这两层同时成立，才能说明 P3 的输出已经从任务级可行推进到轨迹级可执行。
+
+进一步观察轨迹段分布，可以看到最终轨迹并不是单纯的移动轨迹集合，而是包含了移动、服务、等待和让行过程。当前 1800 条采样记录中，\verb|loaded| 为 796 条，\verb|transition| 为 537 条，\verb|service_at_pickup| 为 282 条，\verb|wait_at_pickup| 为 22 条，\verb|mid_path_wait_loaded| 为 163 条。图 \ref{fig:p3-output-evidence-charts} 将修复日志和轨迹段分布放在同一张图中：左侧显示选中模式下剩余冲突数按 $21\rightarrow16\rightarrow7\rightarrow4\rightarrow2\rightarrow0$ 逐步下降，右侧显示最终轨迹中载货、空驶、服务和中途等待的记录规模。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.90\linewidth]{p3_output_evidence_charts.png}
+\caption{P3 修复日志与轨迹段分布}
+\label{fig:p3-output-evidence-charts}
+\end{figure}
+
+图 \ref{fig:p3-output-evidence-charts} 进一步说明，P3 的主要修复动作落在载货路径中途等待上，而不是在任务开始前整体延后；这也与 \verb|reroute_count=0|、\verb|resequence_count=0| 的统计结果一致。
+
+在当前算例中，等待、换路和同车相邻换序三类动作都被纳入候选框架，但真正被最终轨迹采用的是中途等待让行。换路和换序机制的工程意义在于为更复杂的冲突场景预留扩展能力，而不是在本次实验中贡献了额外数值收益。这样的表述能够避免把当前结果过度解释为全局最优或高级动作显著改进，同时也能体现 P3 在接口、日志和可复现性上的完整性。
+
+\subsection{P4 接口与工程可解释性}
+
+P3 与 P4 的衔接主要依赖两个文件。第一，\verb|schedule_result.csv| 保持 P2 表头，更新了修复后的任务时间、等待、路径、电量和方法标记。P4 若只需要任务级基准计划，可以直接读取该文件，并将其中的 \verb|estimated_*| 字段映射为内部使用的开始时间、完成时间、延期和等待时间。第二，\verb|trajectory_schedule.csv| 保存最终实际执行轨迹，包括 \verb|transition|、\verb|loaded|、\verb|service_at_pickup|、\verb|wait_at_pickup| 和 \verb|mid_path_wait_loaded| 等片段。P4 若要判断动态封锁区、AMR 延误窗口或剩余轨迹冲突，应优先使用该轨迹表。
+
+这一接口设计有两个优点。首先，P3 没有破坏 P2 的任务级数据结构，降低了下游模块读取成本。其次，P3 额外输出了最终轨迹，P4 不需要重新展开 P1 的全部候选路径，也不需要直接使用 P2 的原始计划。特别是对于中途等待片段，P4 可以把它视为普通静止轨迹点：它有绝对时间、坐标、footprint 半径和速度 0，因此可以直接参与动态区域封锁和二次冲突判断。
+
+P3 的修复过程也具有可解释性。\verb|conflict_log.csv| 记录每轮修复的模式、迭代次数、冲突时间、冲突类型、修复动作、目标 AMR、目标任务、等待时间和修复后冲突数。\verb|repair_summary.csv| 则记录三种模式的初始冲突、剩余冲突、延期、$C_{\max}$、等待、换路、换序和目标函数值。
+
+\subsection{方法局限与全局最优讨论}
+
+P3 当前更适合作为启发式执行层修复模块，而不是全局最优协调模块。其主要优点是结构清晰、动作直观、输出稳定，并且能够与 P4 顺利衔接；主要不足是不能保证全局最优，且修复结果可能受到冲突处理顺序和候选动作集合的影响。当前实验中，换路和同车相邻换序虽然已经纳入代码框架，但最终没有实际被采用，因此高级修复动作仍需要在更高冲突密度的算例中进一步验证。
+
+理论上，可以将 P3 建模为全局最优问题，例如使用 MILP、CP-SAT、CBS/MAPF 或时空网络流模型。但在本项目中直接采用完整全局最优算法会带来明显困难。第一，时间离散粒度为 $0.1$ 秒，当前 $C_{\max}$ 约为 46.6 秒，意味着单个算例就接近 466 个时间步。若在每个时间步描述每台 AMR 的位置、路径段、等待状态和任务状态，变量规模会随 AMR 数量、任务数量和候选路径数快速增长。第二，二维 footprint 冲突本质上是几何距离约束，若用 MILP 精确表达，需要处理平方距离、二阶锥约束或大量 Big-M 互斥约束；若用网格近似，又会在几何精度和模型规模之间产生取舍。
+
+第三，P3 的动作之间强耦合。对某台 AMR 加 2 秒等待，可能消除当前冲突，却引入后续任务的新冲突；换路可能缩短空间冲突，却改变到达时间；换序可能改善局部等待，却改变 P2 给出的车内任务链。因此，全局模型需要同时考虑等待位置、等待时长、路径选择、任务顺序和所有 AMR 的相互影响，求解时间和模型解释都会变得复杂。第四，如果 P3 允许跨 AMR 重分配任务或大范围换序，它会与 P2 的职责重叠；如果动态事件后重新求全局模型，又会与 P4 的滚动重排职责重叠。
+
+因此，本项目P3并不是严格的全局最优求解模块，而是项目分工时确定的执行层可行性修复模块。更合理的后续改进方向是在当前启发式框架上加入局部优化：例如只对冲突发生前后的有限时间窗建模，只对冲突图中的相关 AMR 组成小规模冲突组，或先由启发式生成有限个等待、换路和换序候选，再用整数规划从候选动作中选择组合。这样既能提高局部修复质量，又能保留当前 P3 的可解释性和接口稳定性。
