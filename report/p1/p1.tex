@@ -1,30 +1,203 @@
-﻿\section{P1：二维候选路径生成}
+\section{P1：二维候选路径生成}
 
-P1 是整个系统的路径基础层。它不直接决定任务由谁执行，也不处理多机器人避碰，而是在二维仓库平面上为关键节点对生成候选路径、路径成本、栅格轨迹和轨迹采样表。下游 P2 使用 P1 的成本表做任务分配与排序，P3/P4 使用 P1 的轨迹样本展开二维时空轨迹。
+P1 是整个系统的路径基础层。它不直接决定任务由谁执行，也不处理多机器人避碰，而是在二维仓库平面上为关键节点对生成候选路径、路径成本、栅格轨迹和轨迹采样表。下游 P2 使用 P1 的成本表做任务分配与排序，P3/P4 使用 P1 的轨迹样本展开二维时空轨迹。因此，P1 的核心作用不是简单寻找一条最短路，而是把仓库平面、障碍物、安全膨胀、路径偏好和动态风险转化为后续调度模型可读取的结构化输入。
+
+\subsection{建模对象与输出目标}
+
+P1 的输入来自 P0 整理后的二维仓库场景，主要包括节点表、区域表、障碍物表、AMR 初始位置和任务取送货点。关键节点集合记为 $V_K$，其中包含入库口、出库口、货架点、分拣台、充电点和 AMR 初始点。P1 对所有有序节点对 $(i,j), i\neq j$ 生成路径，因此每一种单算法在本算例中输出 $17\times 16=272$ 条可行路径。
+
+从数学上看，P1 需要为每个 OD 对输出一条折线路径
+\[
+  p_{ij} = (q_0,q_1,\ldots,q_m),\qquad q_0=i,\ q_m=j,
+\]
+其中每个 $q_\ell=(x_\ell,y_\ell)$ 是二维平面上的路径点。路径的几何距离为
+\[
+  d(p_{ij})=\sum_{\ell=0}^{m-1}\|q_{\ell+1}-q_\ell\|_2,
+\]
+在本文实现中 AMR 标准速度取 $v=1.0$，所以物理通行时间为
+\[
+  t(p_{ij})=\frac{d(p_{ij})}{v}.
+\]
+除了距离和时间，P1 还记录转角数、转角代价、动态区域代价、轨迹采样点数等指标。这些指标一方面用于算法比较，另一方面进入 P2 的路径选择和 P3/P4 的轨迹展开。
+
+障碍物处理采用“AMR footprint 膨胀”思想。货架、墙体和动态封锁区在路径规划时不是只按原始几何边界处理，而是按机器人半径进行膨胀，使路径几何中心线与障碍物保持安全距离。这样，P1 输出的路径在后续展开为 footprint 轨迹时才不会天然穿越障碍区域。
 
 \subsection{算法框架}
 
-P1 实现了 A*、VG、AVG、DAVG 四类路径生成算法，并进一步通过 mixed 路径库形成多候选接口：
+P1 实现了 \verb|basic_astar|、\verb|vg|、\verb|avg|、\verb|davg| 四类路径生成算法，并进一步通过 \verb|mixed| 路径库形成多候选接口。四类单算法分别代表不同路径偏好：栅格可达性、几何短路、转弯平滑性和动态风险规避。
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{p{0.20\linewidth}p{0.34\linewidth}p{0.34\linewidth}}
+\begin{tabular}{p{0.18\linewidth}p{0.34\linewidth}p{0.36\linewidth}}
 \toprule
-算法 & 建模含义 & 当前实现中的作用 \\
+算法 & 核心思想 & 当前实现中的作用 \\
 \midrule
-\verb|basic_astar| & 栅格最短路基线 & 二维栅格 8 邻域 A*，生成基础可行路径 \\
-\verb|vg| & 可视图最短路 & 在障碍物顶点可视图上生成较短几何路径 \\
-\verb|avg| & 增强可视图 & 在 VG 基础上加入转弯代价 \\
-\verb|davg| & 动态增强可视图 & 在 AVG 基础上加入动态区域代价 \\
-\verb|mixed| & 多候选融合库 & 融合四种 P1 输出，为 P2/P3/P4 提供多候选路径库 \\
+\verb|basic_astar| & 将仓库离散为 $0.1$m 栅格，在 8 邻域上用 A* 最小化几何距离 & 作为最朴素的可达性基线，路径贴合栅格方向，通常折点较多 \\
+\verb|vg| & 构造障碍物膨胀边界的可视图，在可见顶点之间搜索最短折线 & 作为连续几何最短路基线，路径通常更短、更少折点 \\
+\verb|avg| & 在 VG 基础上把上一顶点纳入搜索状态，对转角大小加惩罚 & 倾向选择转向更少、更平滑的路径，体现运动执行偏好 \\
+\verb|davg| & 在 AVG 基础上加入动态风险区域暴露代价，并采用局部活跃可视图 & 用于动态封锁或风险场景，倾向绕开临时风险区域 \\
+\verb|mixed| & 合并四类算法输出，并按几何去重保留多候选 & 为 P2/P3/P4 提供同一 OD 下多路径可选空间 \\
 \bottomrule
 \end{tabular}
 \caption{P1 路径算法在最终系统中的定位}
 \label{tab:p1-methods}
 \end{table}
 
-表 \ref{tab:p1-methods} 说明 P1 并不是简单比较几种最短路算法，而是为后续调度层构造不同偏好的候选路径。A* 偏重栅格可达性，VG 偏重几何最短，AVG 引入转弯平滑性，DAVG 引入动态风险代价，mixed 则把这些不同路径偏好融合成调度层可选择的路径库。
+表 \ref{tab:p1-methods} 说明 P1 并不是简单比较几种最短路算法，而是为后续调度层构造不同偏好的候选路径。A* 偏重栅格可达性，VG 偏重连续空间中的几何最短，AVG 引入转弯平滑性，DAVG 引入动态风险代价，mixed 则把这些不同路径偏好融合成调度层可选择的路径库。
+
+\subsection{Grid A*：栅格可达性基线}
+
+\verb|basic_astar| 将二维仓库转化为分辨率 $0.1$m 的规则栅格。每个栅格单元用其中心点代表空间位置，若中心点落入膨胀后的硬障碍物，则该单元标记为不可通行。搜索动作采用 8 邻域：
+\[
+  \Delta=\{(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)\}.
+\]
+横纵向移动代价为一个栅格宽度，斜向移动代价为 $\sqrt{2}$ 个栅格宽度。A* 的评价函数为
+\[
+  f(n)=g(n)+h(n),
+\]
+其中 $g(n)$ 是从起点到当前栅格的累计距离，$h(n)$ 是当前栅格到终点的欧氏直线距离。由于 8 邻域移动的真实最短剩余距离不会小于欧氏距离，这个启发函数是可接受的，不会高估剩余代价。
+
+实现中还加入了两个工程细节。第一，如果起点或终点恰好位于膨胀障碍物内，会在局部半径内寻找最近可通行栅格，避免由于节点坐标贴近货架边界而直接失败。第二，斜向移动时检查相邻两个正交单元，禁止“贴角穿越”，防止路径从两个障碍物角点之间不合理穿过。
+
+Grid A* 的优点是直观、稳定、容易处理任意形状的占用区域；缺点是路径受栅格方向限制，可能产生较多方向变化。本文只把转角数作为报告指标，不把转角惩罚加入 A* 搜索目标，因此它是一个纯距离基线。后续的 VG/AVG/DAVG 都可以与该基线对比，说明连续几何建图和路径偏好项的价值。
+
+\subsection{VG：可视图几何最短路}
+
+\verb|vg| 不再在密集栅格上扩展，而是在连续平面中构造稀疏可视图。可视图的顶点包括起点、终点和膨胀障碍物的角点。若两个顶点之间的线段不穿过任何硬障碍物内部，则二者之间连一条边，边权为欧氏距离。随后在这个可视图上运行 A*，启发函数仍是到终点的直线距离。
+
+VG 的关键是把“绕障碍物”问题转化为“在可见角点之间选折线”的图搜索问题。若不考虑转弯和动态风险，二维多边形障碍物环境中的最短折线通常会贴近障碍物膨胀边界的顶点。因此，VG 比 Grid A* 更接近连续空间中的几何最短路，路径折点也少得多。
+
+本文实现中，线段可见性使用矩形裁剪思想判断线段是否穿过障碍物内部。触碰边界被允许，因为障碍物已经经过安全膨胀；真正被拒绝的是线段与膨胀障碍物内部有正长度重叠的情况。墙体作为仓库边界，不参与候选绕行角点，避免路径沿外墙边界产生无意义顶点。
+
+VG 的输出中 \verb|turn_cost|、\verb|dynamic_cost| 均为 0，\verb|total_cost| 等于几何距离。它在 P1 里提供的是“最短可见折线”的参照物：如果某条路径在 VG 中已经很短且折点很少，说明该 OD 对的空间约束比较直接；如果与 A* 差异很大，则说明栅格离散或障碍边界对路径形态影响明显。
+
+\subsection{AVG：加入转角偏好的增强可视图}
+
+普通 VG 只关心路径长度，可能选择一条距离略短但转弯较急的路线。对于 AMR 来说，频繁或剧烈转向会带来控制代价、速度损失和执行不稳定性。AVG 在 VG 的几何图基础上引入转角惩罚，目标函数变为
+\[
+  c_{\mathrm{AVG}}(p)=d(p)+\lambda_\theta\sum_{\ell=1}^{m-1}\theta_\ell,
+\]
+其中 $\theta_\ell$ 是路径在顶点 $q_\ell$ 的航向变化角，$\lambda_\theta=0.5$ 为单位弧度转角代价。
+
+为了在搜索过程中正确计算转角，AVG 的状态不再只是当前顶点，而是
+\[
+  s=(q_{\mathrm{prev}},q_{\mathrm{cur}}).
+\]
+当搜索从 $q_{\mathrm{cur}}$ 扩展到 $q_{\mathrm{next}}$ 时，就可以根据上一段和下一段的航向计算当前顶点处的转角代价。该状态扩展使 A* 的转移代价从单纯边长变为
+\[
+  c(s,q_{\mathrm{next}})=\|q_{\mathrm{next}}-q_{\mathrm{cur}}\|_2
+  +\lambda_\theta\,\Delta\phi(q_{\mathrm{prev}},q_{\mathrm{cur}},q_{\mathrm{next}}).
+\]
+第一步没有上一段航向，因此不收取转角代价；同时实现中跳过立即掉头的扩展，减少无意义循环。
+
+需要强调的是，AVG 中的转角代价不是物理通行时间。本文仍用几何距离除以速度计算 \verb|travel_time|，转角项只进入 \verb|total_cost|，用于表达路径偏好。这样做的好处是保持时间窗模型简洁，同时让 P2 在路径选择时可以区分“距离短但转弯多”和“略长但更平顺”的路线。
+
+\subsection{DAVG：动态风险代价与活跃可视图}
+
+DAVG 在 AVG 的基础上处理动态封锁或风险区域。它保留状态增强和转角惩罚，同时对靠近动态区域的可视边加入暴露代价：
+\[
+  c_{\mathrm{DAVG}}(p)=d(p)+\lambda_\theta\sum_{\ell=1}^{m-1}\theta_\ell
+  +\sum_{e\in p} c_{\mathrm{dyn}}(e).
+\]
+对于一条边 $e$，若它到动态区域的最小距离为 $\delta_e$，动态风险缓冲半径为 $B=1.0$，权重为 $\lambda_d=2.0$，则实现中的动态代价可理解为
+\[
+  c_{\mathrm{dyn}}(e)=
+  \begin{cases}
+    \lambda_d\left(1-\frac{\delta_e}{B}\right)|e|, & \delta_e<B,\\
+    0, & \delta_e\ge B.
+  \end{cases}
+\]
+这意味着边越长、越靠近动态区域，付出的风险代价越大。若路径远离动态区域，则 DAVG 会退化为 AVG。
+
+DAVG 还加入活跃区域建图：对每个 OD 对，只把起终点走廊附近的障碍物角点加入候选顶点，同时动态障碍物角点始终保留。这样可以减少远离当前 OD 的障碍角点带来的图规模。为了不牺牲可行性，可见性检测仍对所有硬障碍物进行；若局部活跃图无法找到路径，则回退到完整障碍角点图。
+
+在当前静态主算例中，DAVG 的平均动态代价为 0，说明选出的路径没有进入动态风险缓冲区。因此，DAVG 与 AVG 的几何距离、转角数和总成本在 P1 层面基本一致。这不是 DAVG 失效，而是说明当前 P1 静态路径比较没有触发风险绕行；DAVG 的主要价值体现在后续 P4 动态事件或封锁场景中。
+
+\subsection{算法对比实验设计}
+
+为支撑报告中的 P1 横向比较，本文新增脚本 \verb|run_p1_experiments.py|，位于 \verb|src/p1_candidate_paths/|。该脚本只读取已有的 P1 处理结果，不覆盖任何原始结果；所有新增实验产物写入 \verb|outputs/p1_experiments/|。输出包括算法总体指标表、代表性 OD 对路径对比图、mixed 候选数量热力图和对应 CSV。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.18\linewidth}rrrrr}
+\toprule
+算法 & 路径数 & 平均距离 & 平均转角数 & 平均动态代价 & 平均总成本 \\
+\midrule
+Grid A* & 272 & 6.463 & 9.206 & 0.000 & 6.463 \\
+VG & 272 & 6.054 & 1.846 & 0.000 & 6.054 \\
+AVG & 272 & 6.071 & 1.765 & 0.000 & 6.695 \\
+DAVG & 272 & 6.071 & 1.765 & 0.000 & 6.695 \\
+\bottomrule
+\end{tabular}
+\caption{P1 四类单算法总体指标对比}
+\label{tab:p1-algorithm-summary}
+\end{table}
+
+表 \ref{tab:p1-algorithm-summary} 体现了不同算法的主要差异。Grid A* 的平均距离为 6.463，高于 VG 的 6.054；平均转角数为 9.206，也显著高于 VG 的 1.846。这说明栅格离散会引入阶梯状路径和更多方向变化。VG 在连续可视图上寻找几何短路，所以距离和折点都更少。AVG 的平均距离略高于 VG，但平均转角数进一步降低到 1.765，说明转角惩罚会让搜索在少量距离损失下获得更平滑的路径。DAVG 在当前静态算例中与 AVG 一致，因为动态风险代价没有被触发。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p1_algorithm_metric_summary.png}
+\caption{P1 四类算法在距离、转角、动态代价和总成本上的总体对比}
+\label{fig:p1-algorithm-metrics}
+\end{figure}
+
+图 \ref{fig:p1-algorithm-metrics} 从可视化角度进一步说明：如果只看距离，VG 是当前算例中最短的单路径源；如果考虑转向平滑性，AVG/DAVG 比 VG 稍微牺牲距离，但用转角惩罚表达执行偏好；如果考虑动态风险，当前样本中四类路径动态代价均为 0，说明风险区域并未影响这些静态 OD 最优路径。这为后文解释 P2 中不同路径源对调度结果的影响提供了基础。
+
+\subsection{代表性 OD 对路径形态比较}
+
+为了更直观地解释四类算法的路径差异，本文选取 \verb|IN1 -> P5| 作为路径图案例。该 OD 对需要从入库区进入货架中部，路径需要绕开货架 A/F，能够展示栅格折线、可视图短路和转角代价评价之间的区别。另选 \verb|P8 -> OUT2| 作为表格补充，用于说明接近直线通行时栅格算法仍可能产生额外转向。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.86\linewidth]{p1_path_comparison_IN1_P5.png}
+\caption{\texttt{IN1 -> P5} 的四类 P1 路径形态对比}
+\label{fig:p1-compare-in1-p5}
+\end{figure}
+
+图 \ref{fig:p1-compare-in1-p5} 中，Grid A* 路径沿栅格方向逐步上行并右移，距离为 6.843，转角数为 5；VG 直接利用可视边绕过货架，距离降至 6.492，转角数为 2。AVG 与 DAVG 在这个 OD 上选择了和 VG 相同的几何折线，但由于 AVG/DAVG 的 \verb|total_cost| 中包含转角惩罚，其总成本为 6.729，高于 VG 的 6.492。这说明同一条几何路径在不同算法的评价口径下可能有不同总成本，P2 在读入路径源时需要明确使用的是 \verb|travel_time| 还是 \verb|total_cost|。
+
+作为补充，\verb|P8 -> OUT2| 在连续空间中几乎可以直线到达，因此 VG、AVG、DAVG 均输出距离 3.583、转角数 0 的直线路径。Grid A* 由于受到 $0.1$m 栅格和 8 邻域运动方向限制，输出距离 3.863、转角数 18 的折线。这个案例说明，即使起终点之间没有复杂绕障碍需求，栅格路径也可能因为离散化而产生额外转向；连续可视图算法可以显著改善路径几何质量。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.15\linewidth}p{0.13\linewidth}rrrr}
+\toprule
+OD 对 & 算法 & 距离 & 转角数 & 动态代价 & 总成本 \\
+\midrule
+\verb|IN1->P5| & Grid A* & 6.843 & 5 & 0.000 & 6.843 \\
+\verb|IN1->P5| & VG & 6.492 & 2 & 0.000 & 6.492 \\
+\verb|IN1->P5| & AVG & 6.492 & 2 & 0.000 & 6.729 \\
+\verb|IN1->P5| & DAVG & 6.492 & 2 & 0.000 & 6.729 \\
+\verb|P8->OUT2| & Grid A* & 3.863 & 18 & 0.000 & 3.863 \\
+\verb|P8->OUT2| & VG & 3.583 & 0 & 0.000 & 3.583 \\
+\verb|P8->OUT2| & AVG & 3.583 & 0 & 0.000 & 3.583 \\
+\verb|P8->OUT2| & DAVG & 3.583 & 0 & 0.000 & 3.583 \\
+\bottomrule
+\end{tabular}
+\caption{代表性 OD 对的路径指标对比}
+\label{tab:p1-pair-metrics}
+\end{table}
+
+表 \ref{tab:p1-pair-metrics} 与图 \ref{fig:p1-compare-in1-p5} 相互印证：A* 的优势在于稳健可达和离散化处理，VG 的优势在于几何距离，AVG/DAVG 的优势在于用附加代价表达转向和风险偏好。对于上层调度而言，这些算法没有绝对优劣，关键是它们提供了不同路径风格。
+
+\subsection{mixed 多候选路径库}
+
+单一 P1 算法对同一 OD 通常只输出一条路径，无法充分体现“路径可选择性”。因此本文通过 \verb|build_mixed_paths.py| 融合 \verb|basic_astar|、\verb|vg|、\verb|avg| 和 \verb|davg| 的输出，生成 \verb|data/processed/p1/mixed/|。mixed 路径库会给 \verb|path_uid| 加算法前缀，并在几何去重后保留多条候选。本算例融合后平均每个 OD 有 1.77 条候选路径，最多 3 条。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.68\linewidth]{p1_mixed_candidate_count_heatmap.png}
+\caption{mixed 路径库中各 OD 对的候选路径数量}
+\label{fig:p1-mixed-candidate-heatmap}
+\end{figure}
+
+图 \ref{fig:p1-mixed-candidate-heatmap} 展示 mixed 路径库在 OD 层面的候选数量分布。统计结果显示，152 个 OD 对只有 1 条几何唯一候选，112 个 OD 对有 2 条候选，8 个 OD 对有 3 条候选。候选数量不是越多越好：若多个算法输出相同或近似相同的几何路径，去重后只保留一条即可；若算法偏好导致路径明显不同，则保留多条供 P2 选择。
+
+mixed 的意义在于把路径规划层的多种偏好上交给调度层。P2 可以在任务排序、时间窗、电量和目标规划约束下决定使用哪条路径，而不是被某一个底层路径算法固定住。例如，在静态场景中，VG 可能提供最短通行时间；在强调执行平滑性时，AVG 路径可能更合适；在动态封锁或风险区域出现后，DAVG 路径可能为 P4 提供绕行选择。这样，P1 与 P2/P4 的关系从“单路径输入”变成“候选路径集合输入”。
 
 \subsection{输出接口}
 
@@ -33,7 +206,7 @@ P1 的主要输出位于 \verb|data/processed/p1/<algorithm>/|：
 \begin{itemize}
   \item \verb|key_nodes.csv|：参与路径规划的关键节点；
   \item \verb|path_cost.csv|：面向 P2 的 OD 路径成本表；
-  \item \verb|path_grid_cells.csv|：路径穿越栅格记录；
+  \item \verb|path_grid_cells.csv|：路径穿越栅格或可视图顶点记录；
   \item \verb|path_trajectory_samples.csv|：面向 P3/P4 的相对时间轨迹采样；
   \item \verb|path_cost_matrix_time.csv| 和 \verb|path_cost_matrix_total.csv|：时间矩阵和综合成本矩阵。
 \end{itemize}
@@ -42,27 +215,10 @@ P1 的主要输出位于 \verb|data/processed/p1/<algorithm>/|：
 
 \verb|path_trajectory_samples.csv| 提供相对出发时刻的二维轨迹样本，包括 \verb|offset_time|、\verb|x|、\verb|y|、\verb|theta|、\verb|speed| 和 \verb|footprint_radius|。P3/P4 读取该表后，将相对时间平移到具体任务的绝对开始时间，从而形成可检测冲突的时空轨迹。
 
-\subsection{mixed 多候选路径库}
-
-单一 P1 算法对同一 OD 通常只输出一条路径，无法充分体现“候选路径选择”。因此本文通过 \verb|build_mixed_paths.py| 融合 \verb|basic_astar|、\verb|vg|、\verb|avg| 和 \verb|davg| 的输出，生成 \verb|data/processed/p1/mixed/|。mixed 路径库会给 \verb|path_uid| 加算法前缀，并在几何去重后保留多条候选。本算例融合后平均每个 OD 有 1.77 条候选路径，最多 4 条。
-
-\begin{figure}[!htbp]
-\centering
-\begin{minipage}{0.48\linewidth}
-\centering
-\includegraphics[width=\linewidth]{p1_candidate_paths_IN1_P5.png}
-\end{minipage}\hfill
-\begin{minipage}{0.48\linewidth}
-\centering
-\includegraphics[width=\linewidth]{p1_basic_astar_cost_matrix_time.png}
-\end{minipage}
-\caption{P1 候选路径与路径时间成本矩阵示例}
-\label{fig:p1-path-cost}
-\end{figure}
-
-图 \ref{fig:p1-path-cost} 给出了 P1 输出的两个层次：上图展示单个 OD 对的二维路径几何，下图展示关键节点之间的通行时间矩阵。前者说明路径规划已经落到具体仓库平面，后者则把几何路径转化为 P2 可直接调用的成本输入。也就是说，P1 完成了从“二维空间路径”到“调度成本矩阵”的转换。
+通过上述表结构，P1 完成了从“二维空间路径”到“调度成本矩阵”和“时空轨迹样本”的转换。路径几何用于解释算法差异，时间矩阵用于 P2 的任务排序与衔接，轨迹采样则用于 P3/P4 的冲突检测与动态重排。
 
 \subsection{与后续模块的关系}
 
 P1 的设计边界是“生成候选路径与轨迹样本”，不在 P1 内部求解全局多机器人调度。这样可以让路径算法与调度算法解耦：路径规划层只关心二维可达性、距离、转弯和动态风险；P2--P4 再根据任务、时间窗、电量和冲突约束选择和调整这些候选路径。
 
+这种分层也解释了为什么 P1 需要保留多种路径算法。若 P1 只输出一张最短路矩阵，P2 的路径选择变量就会退化；若 P1 输出多候选路径，P2 才能在“短距离、少转弯、低风险、低冲突潜力”之间进行组合优化。P3/P4 则进一步使用轨迹采样表验证这些任务级路径是否在时间维度上真正可执行。

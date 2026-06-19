@@ -18,8 +18,11 @@
 
 \newcommand{\projecttitle}[1]{\def\theprojecttitle{#1}}
 \newcommand{\projectcourse}[1]{\def\theprojectcourse{#1}}
-\newcommand{\projectauthor}[1]{\def\theprojectauthor{#1}}
-\newcommand{\projectid}[1]{\def\theprojectid{#1}}
+\newcommand{\projectmembers}[2]{
+  \def\theprojectmemberslineone{#1}
+  \def\theprojectmemberslinetwo{#2}
+  \def\theprojectmembers{#1，#2}
+}
 \newcommand{\projectschool}[1]{\def\theprojectschool{#1}}
 \newcommand{\projectteacher}[1]{\def\theprojectteacher{#1}}
 \newcommand{\projectdate}[1]{\def\theprojectdate{#1}}
@@ -27,7 +30,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \lhead{\theprojectcourse}
-\rhead{\theprojectauthor\quad\theprojectid}
+\rhead{}
 \cfoot{\thepage}
 
 \newcommand{\makeprojectcover}{
@@ -49,12 +52,16 @@
     \vspace{1.2cm}
     \begin{center}
       \Large
-      课程名称\ \underline{\makebox[220pt]{\theprojectcourse}}\\[0.35cm]
-      姓\qquad 名\ \underline{\makebox[220pt]{\theprojectauthor}}\\[0.35cm]
-      学\qquad 号\ \underline{\makebox[220pt]{\theprojectid}}\\[0.35cm]
-      学\qquad 院\ \underline{\makebox[220pt]{\theprojectschool}}\\[0.35cm]
-      指导教师\ \underline{\makebox[220pt]{\theprojectteacher}}\\[0.35cm]
-      完成日期\ \underline{\makebox[220pt]{\theprojectdate}}
+      \begin{tabular}{@{}r@{\ }c@{}}
+        课程名称 & \underline{\makebox[300pt]{\theprojectcourse}}\\[0.35cm]
+        小组成员 & \begin{tabular}[t]{@{}c@{}}
+          \underline{\makebox[300pt]{\theprojectmemberslineone}}\\[0.18cm]
+          \underline{\makebox[300pt]{\theprojectmemberslinetwo}}
+        \end{tabular}\\[0.35cm]
+        学\qquad 院 & \underline{\makebox[300pt]{\theprojectschool}}\\[0.35cm]
+        指导教师 & \underline{\makebox[300pt]{\theprojectteacher}}\\[0.35cm]
+        完成日期 & \underline{\makebox[300pt]{\theprojectdate}}
+      \end{tabular}
     \end{center}
   \end{titlepage}
 }

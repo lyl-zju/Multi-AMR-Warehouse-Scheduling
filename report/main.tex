@@ -1,6 +1,6 @@
 ﻿% !TeX program = xelatex
 \PassOptionsToPackage{quiet}{fontspec}
-\documentclass[12pt,a4paper,UTF8,fontset=none]{ctexart}
+\documentclass[12pt,a4paper,UTF8,fontset=windows]{ctexart}
 \usepackage{projectreport}
 \usepackage{array}
 \usepackage{longtable}
@@ -8,9 +8,6 @@
 \usepackage{caption}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
-\setCJKmainfont{Songti SC}
-\setCJKsansfont{PingFang SC}
-\setCJKmonofont{Hiragino Sans GB}
 \setlength{\headheight}{14.5pt}
 \setlength{\emergencystretch}{3em}
 
@@ -20,8 +17,7 @@
 
 \projecttitle{动态仓储环境下多 AMR 任务分配与路径协同调度优化模型研究}
 \projectcourse{运筹学}
-\projectauthor{XXX}
-\projectid{XXX}
+\projectmembers{李彦霖（组长），朱熠正，江亚楠}{倪振昊，张铭浥}
 \projectschool{控制科学与工程学院}
 \projectteacher{赵斐}
 \projectdate{\today}
@@ -235,4 +231,29 @@ P5 灵敏度分析 & 识别 4 台 AMR 服务阈值、14 个任务保守容量边
 整体来看，项目将路径库、任务分配、时空冲突修复、动态扰动处理和灵敏度分析串联为一个统一接口体系。报告中的模型、算法和实验结果共同说明：任务级排程必须经过轨迹级校验，动态扰动需要在保持可执行性的前提下进行局部重排，P5 灵敏度分析进一步把这些结果转化为面向仓库运营的管理建议。
 
 \projectreference
+
+\clearpage
+\appendix
+\section{成员分工}
+
+本附录汇总本项目五名成员在模型设计、程序实现、实验分析和报告撰写中的主要分工。各成员围绕 P0--P5 工作包协同完成，从二维场景建模、候选路径生成、任务分配排序、轨迹冲突修复、动态滚动重排到灵敏度分析，形成完整的多 AMR 调度优化链路。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.12\linewidth}p{0.13\linewidth}p{0.20\linewidth}p{0.43\linewidth}}
+\toprule
+成员 & 工作包 & 分工主题 & 主要贡献 \\
+\midrule
+李彦霖 & P0/P1 & 场景建模与候选路径生成，PPT制作 & 负责仓储二维场景、节点和障碍物数据整理，完成 A*、VG、AVG、DAVG 及 mixed 候选路径库构建，输出路径成本表和轨迹样本。 \\
+朱熠正 & P2 & 任务分配与排序优化，报告框架搭建 & 负责多 AMR 任务指派、车内任务排序、路径选择和时间窗约束建模，比较贪心、两阶段整数规划、联合 MILP 与启发式局部搜索方法。 \\
+江亚楠 & P3 & 时空冲突检测与修复 & 负责将任务级计划展开为二维时空轨迹，检测 AMR footprint 冲突和节点容量冲突，并通过等待、换路和换序策略完成冲突修复。 \\
+倪振昊 & P4 & 动态事件与滚动重排 & 负责通道封锁、AMR 延误和新增任务等动态事件建模，在冻结已执行任务的基础上重排未来任务池，并完成动态重排结果可视化。 \\
+张铭浥 & P5 & 灵敏度分析与管理解释 & 负责基线校验、AMR 数量边际分析、任务容量边界、瓶颈通道容量和 Morris/Sobol 全局灵敏度分析，形成运营管理建议。 \\
+\bottomrule
+\end{tabular}
+\caption{小组成员分工汇总}
+\label{tab:appendix-member-division}
+\end{table}
+
 \end{document}

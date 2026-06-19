@@ -1,0 +1,13 @@
+﻿from_node,to_node,label,source_algorithm,distance,travel_time,turn_count,turn_cost,dynamic_cost,total_cost,trajectory_sample_count,waypoint_count
+IN1,P5,AVG,avg,6.492,6.492,2,0.237,0.0,6.729,14,4
+IN1,P5,Grid A*,basic_astar,6.843,6.843,5,0.0,0.0,6.843,15,7
+IN1,P5,DAVG,davg,6.492,6.492,2,0.237,0.0,6.729,14,4
+IN1,P5,VG,vg,6.492,6.492,2,0.0,0.0,6.492,14,4
+P5,SORT1,AVG,avg,4.709,4.709,2,0.367,0.0,5.076,11,4
+P5,SORT1,Grid A*,basic_astar,5.004,5.004,5,0.0,0.0,5.004,12,7
+P5,SORT1,DAVG,davg,4.709,4.709,2,0.367,0.0,5.076,11,4
+P5,SORT1,VG,vg,4.709,4.709,2,0.0,0.0,4.709,11,4
+P8,OUT2,AVG,avg,3.583,3.583,0,0.0,0.0,3.583,9,2
+P8,OUT2,Grid A*,basic_astar,3.863,3.863,18,0.0,0.0,3.863,9,20
+P8,OUT2,DAVG,davg,3.583,3.583,0,0.0,0.0,3.583,9,2
+P8,OUT2,VG,vg,3.583,3.583,0,0.0,0.0,3.583,9,2

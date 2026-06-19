@@ -1,0 +1,5 @@
+﻿source_algorithm,label,path_count,avg_distance,avg_travel_time,avg_turn_count,avg_turn_cost,avg_dynamic_cost,max_dynamic_cost,avg_total_cost,avg_waypoint_count,avg_trajectory_samples,dynamic_path_share
+basic_astar,Grid A*,272,6.463,6.463,9.206,0.0,0.0,0.0,6.463,11.206,14.419,0.0
+vg,VG,272,6.054,6.054,1.846,0.0,0.0,0.0,6.054,3.846,13.596,0.0
+avg,AVG,272,6.071,6.071,1.765,0.624,0.0,0.0,6.695,3.765,13.625,0.0
+davg,DAVG,272,6.071,6.071,1.765,0.624,0.0,0.0,6.695,3.765,13.625,0.0
