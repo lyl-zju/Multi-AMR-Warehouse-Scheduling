@@ -1,6 +1,6 @@
 \subsection{基线校验与占用热点识别}
 
-进行关键资源敏感度分析之前，我们首先固定当前实例的\textbf{真实调度结果}。基线工况包含当前仓库布局、12 个静态任务、4 台 AMR，以及已注入的动态事件。系统依次完成\textbf{静态排程、冲突修复和动态重排}；同时将轨迹点投影到网格单元，统计\textbf{轨迹占用热点}。关键结果汇总见表~\ref{tab:baseline-summary} 和表~\ref{tab:baseline-hotspots}。
+进行关键资源灵敏度分析之前，我们首先固定当前实例的\textbf{真实调度结果}。基线工况包含当前仓库布局、12 个静态任务、4 台 AMR，以及已注入的动态事件。系统依次完成\textbf{静态排程、冲突修复和动态重排}；同时将轨迹点投影到网格单元，统计\textbf{轨迹占用热点}。关键结果汇总见表~\ref{tab:baseline-summary} 和表~\ref{tab:baseline-hotspots}。
 
 \begin{center}
 \begin{minipage}[t]{0.53\linewidth}
@@ -56,4 +56,4 @@ H_{ab}=\sum_{k=1}^{N}\indicator\{(x_k,y_k)\in\Omega_{ab}\},
 \label{fig:baseline-dashboard}
 \end{center}
 
-综合表~\ref{tab:baseline-summary}、表~\ref{tab:baseline-hotspots} 和图~\ref{fig:baseline-dashboard}，\textbf{当前系统已经满足可行性校验，同时表现出局部拥堵与动态扰动}。敏感度分析因此围绕\textbf{AMR 资源冗余、任务负荷边界和瓶颈通道容量}展开。
+综合表~\ref{tab:baseline-summary}、表~\ref{tab:baseline-hotspots} 和图~\ref{fig:baseline-dashboard}，\textbf{当前系统已经满足可行性校验，同时表现出局部拥堵与动态扰动}。灵敏度分析因此围绕\textbf{AMR 资源冗余、任务负荷边界和瓶颈通道容量}展开。
