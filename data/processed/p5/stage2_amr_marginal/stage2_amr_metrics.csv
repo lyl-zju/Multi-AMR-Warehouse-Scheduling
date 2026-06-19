@@ -1,0 +1,11 @@
+method,p1_algorithm,task_count,amr_count,solve_time,Cmax,total_delay,late_count,priority_late_count,missing_transition_count,missing_loaded_path_count,energy_violation_count,F2,F3,case_output_dir,source
+m2,mixed,12,2,119.532,84.606222,124.593222,4,5.0,0,0,0,7630.878889,335.1528,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m2_amr_2,p5_self_run
+m2,mixed,12,3,116.747,59.802333,11.802333,1,1.0,0,0,0,889.128333,352.115467,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m2_amr_3,p5_self_run
+m2,mixed,12,4,57.783,40.840111,0.0,0,0.0,0,0,0,204.200556,280.812214,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m2_amr_4,p5_self_run
+m2,mixed,12,5,57.457,34.189222,0.0,0,0.0,0,0,0,170.946111,272.010103,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m2_amr_5,p5_self_run
+m2,mixed,12,6,56.886,29.129889,0.0,0,0.0,0,0,0,145.649444,279.841511,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m2_amr_6,p5_self_run
+m3,mixed,12,2,0.08,84.606222,124.593222,4,5.0,0,0,0,7630.878889,335.1528,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m3_amr_2,p5_self_run
+m3,mixed,12,3,0.069,59.802333,11.802333,1,1.0,0,0,0,889.128333,352.115467,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m3_amr_3,p5_self_run
+m3,mixed,12,4,0.082,40.840111,0.0,0,0.0,0,0,0,204.200556,280.812214,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m3_amr_4,p5_self_run
+m3,mixed,12,5,0.152,34.189222,0.0,0,0.0,0,0,0,170.946111,272.010103,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m3_amr_5,p5_self_run
+m3,mixed,12,6,0.115,29.129889,0.0,0,0.0,0,0,0,145.649444,279.841511,data/processed/p5/stage2_amr_marginal/stage2_p2_outputs/m3_amr_6,p5_self_run

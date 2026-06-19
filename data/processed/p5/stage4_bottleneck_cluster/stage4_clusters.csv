@@ -1,0 +1,6 @@
+cluster_id,cell_ids,cell_count,centroid_x,centroid_y,occ_score,conflict_score,wait_score,delay_score,total_score,cluster_type,nearest_zone,nearest_obstacle_id,p4_occ_score,screening_rank,Delta_Cmax,Delta_wait,Delta_objective,final_rank
+C02,"6,4",1,6.5,4.5,42.0,1.0,40.1,8.806731,3.219572,bottleneck_candidate,Z_SORT,RACK_D,24.0,1,2.919667,32.0,4560.249435,2
+C04,"11,4",1,11.5,4.5,25.0,1.0,40.1,2.345268,2.416259,bottleneck_candidate,Z_OUT,WALL_RIGHT,6.0,2,0.0,0.0,0.0,3
+C01,"6,2",1,6.5,2.5,24.0,1.0,40.1,0.748151,2.31899,bottleneck_candidate,Z_SORT,RACK_C,6.0,3,0.0,0.0,-160.0,5
+C05,"12,3",1,12.5,3.5,21.0,1.0,40.1,2.345268,2.289723,bottleneck_candidate,Z_OUT,WALL_RIGHT,6.0,4,0.0,0.0,0.0,4
+C03,"9,2",1,9.5,2.5,18.0,1.0,2.1,18.10002,1.775524,bottleneck_candidate,Z_SORT,RACK_E,13.0,5,14.727837,49.0,10364.363885,1

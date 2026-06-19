@@ -1,0 +1,184 @@
+{
+  "status": "PASS",
+  "errors": [],
+  "p2": {
+    "task_count": 12,
+    "amr_count": 4,
+    "cmax": 40.840111,
+    "sequence_count": 12
+  },
+  "p3": {
+    "task_count": 12,
+    "amr_count": 4,
+    "cmax": 46.59697,
+    "total_delay": 0.0,
+    "late_count": 0,
+    "priority_late_count": 0.0,
+    "remaining_conflicts": 0
+  },
+  "p4": {
+    "task_count": 13,
+    "cmax": 61.918082,
+    "total_delay": 43.996446,
+    "changed_tasks": 4,
+    "new_tasks": 1,
+    "hard_violation_count": 0,
+    "conflict_success": 1.0,
+    "reschedule_time": 19.333895,
+    "summary": {
+      "OriginalScheduledTasks": "12.0",
+      "DynamicEvents": "3.0",
+      "AffectedEvents": "2.0",
+      "ChangedTasks": "4.0",
+      "NewTasks": "1.0",
+      "OriginalCmax": "46.59697",
+      "NewCmax": "61.918082",
+      "TotalAddedDelay": "43.996446",
+      "total_start_shift": "43.996446",
+      "missing_loaded_path_count": "0.0",
+      "missing_transition_count": "0.0",
+      "unresolved_trajectory_conflict_count": "0.0",
+      "blocked_area_violation_count": "0.0",
+      "delayed_amr_violation_count": "0.0",
+      "all_dynamic_tasks_scheduled": "1.0",
+      "energy_violation_count": "0.0",
+      "priority_late_count": "6.0",
+      "late_count": "3.0",
+      "priority_delay": "46.811941",
+      "total_delay": "23.405971",
+      "Cmax": "61.918082",
+      "empty_cost": "67.087",
+      "load_balance_penalty": "21.624638",
+      "total_energy_used": "156.759",
+      "F1_priority_late_count": "6.0",
+      "F1_late_count": "3.0",
+      "F2": "2182.068048",
+      "F3": "507.179375"
+    },
+    "method_row": {
+      "method_id": "rolling_horizon",
+      "method": "滚动时域重排",
+      "added_delay": "23.405971",
+      "disturbed_tasks": "4",
+      "conflict_resolution_success_rate": "1.0",
+      "reschedule_time": "19.333895",
+      "total_delay": "23.405971",
+      "late_count": "3",
+      "priority_late_count": "6.0",
+      "Cmax": "61.918082",
+      "F2": "2182.068048",
+      "F3": "507.179375",
+      "changed_tasks": "4",
+      "new_tasks": "1",
+      "blocked_area_violation_count": "0",
+      "delayed_amr_violation_count": "0",
+      "unresolved_trajectory_conflict_count": "0"
+    }
+  },
+  "hotspots": [
+    {
+      "rank": 1,
+      "cell_x": 6.0,
+      "cell_y": 4.0,
+      "count": 166
+    },
+    {
+      "rank": 2,
+      "cell_x": 5.0,
+      "cell_y": 4.0,
+      "count": 152
+    },
+    {
+      "rank": 3,
+      "cell_x": 9.0,
+      "cell_y": 1.0,
+      "count": 95
+    },
+    {
+      "rank": 4,
+      "cell_x": 9.0,
+      "cell_y": 2.0,
+      "count": 84
+    },
+    {
+      "rank": 5,
+      "cell_x": 8.0,
+      "cell_y": 2.0,
+      "count": 77
+    }
+  ],
+  "metrics": [
+    {
+      "metric": "p2_task_count",
+      "value": 12
+    },
+    {
+      "metric": "p2_amr_count",
+      "value": 4
+    },
+    {
+      "metric": "p2_cmax",
+      "value": 40.840111
+    },
+    {
+      "metric": "p3_task_count",
+      "value": 12
+    },
+    {
+      "metric": "p3_amr_count",
+      "value": 4
+    },
+    {
+      "metric": "p3_cmax",
+      "value": 46.59697
+    },
+    {
+      "metric": "p3_total_delay",
+      "value": 0.0
+    },
+    {
+      "metric": "p3_late_count",
+      "value": 0
+    },
+    {
+      "metric": "p3_priority_late_count",
+      "value": 0.0
+    },
+    {
+      "metric": "p3_remaining_conflicts",
+      "value": 0
+    },
+    {
+      "metric": "p4_task_count",
+      "value": 13
+    },
+    {
+      "metric": "p4_cmax",
+      "value": 61.918082
+    },
+    {
+      "metric": "p4_total_delay_added",
+      "value": 43.996446
+    },
+    {
+      "metric": "p4_changed_tasks",
+      "value": 4
+    },
+    {
+      "metric": "p4_new_tasks",
+      "value": 1
+    },
+    {
+      "metric": "p4_hard_violation_count",
+      "value": 0
+    },
+    {
+      "metric": "p4_conflict_success_rate",
+      "value": 1.0
+    },
+    {
+      "metric": "p4_reschedule_time",
+      "value": 19.333895
+    }
+  ]
+}

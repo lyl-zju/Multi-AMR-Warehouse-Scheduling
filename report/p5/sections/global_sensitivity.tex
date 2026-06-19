@@ -1,0 +1,89 @@
+\subsection{Morris 与 Sobol 全局敏感度筛选}
+
+本阶段将 AMR 数量、任务量和瓶颈簇容量作为同一组\textbf{全局敏感度分析}因素：$Y=f(\theta)=\Cmax(\theta),\theta=(m,n,q_C),$
+其中 $m\in\{3,4,5,6\}$，$n\in\{12,13,14,15\}$，$q_C\in\{1,2,3\}$。瓶颈簇 $q_C$ 自动取瓶颈空间簇与容量影子价值分析中排名第一的 C03。所有样本均运行真实前文运筹规划算法调度链路，连续设计点 $x_i\in[0,1]$ 仅用于抽样，实际求解前按
+$
+\mathcal{M}_i(x_i)=\ell_{i,r_i},
+r_i=1+\min\{L_i-1,\max\{0,\mathrm{round}((L_i-1)x_i)\}\}
+$
+映射到离散水平 $\mathcal{L}_i=(\ell_{i,1},\ldots,\ell_{i,L_i})$，因此响应为 $Y=f(\mathcal{M}(x))$。
+
+\subsubsection{Morris 基本效应筛选}
+
+Morris 方法用\textbf{有限差分基本效应}筛选主导因素。设归一化空间划分为 $p$ 个水平，本实验 $p=4$，步长、第 $r$ 条轨迹上因素 $i$ 的基本效应、对 $R$ 条轨迹汇总定义如下
+\[
+\Delta=\frac{p}{2(p-1)}=\frac{2}{3}.
+\]
+
+\[
+EE_i^{(r)}
+=\frac{f(\mathcal{M}(x^{(r)}+\Delta e_i))-f(\mathcal{M}(x^{(r)}))}{\Delta}.
+\]
+
+\[
+\mu_i^\star=\frac{1}{R}\sum_{r=1}^{R}|EE_i^{(r)}|,\qquad
+\sigma_i=\sqrt{\frac{1}{R-1}\sum_{r=1}^{R}\left(EE_i^{(r)}-\bar{EE}_i\right)^2}.
+\]
+其中 $\mu_i^\star$ 表示全局影响强度，$\sigma_i$ 表示影响随背景工况变化的幅度；$\sigma_i$ 较大通常意味着\textbf{非线性效应}或\textbf{交互效应}。
+
+\begin{center}
+\small
+\captionof{table}{Morris 全局筛选结果}
+\label{tab:stage5-morris}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+因素 & $\mu^\star$ & $\sigma$ & $\mu^\star$ 置信宽度 \\
+\midrule
+$m$ & 30.711 & 10.943 & 6.490 \\
+$n$ & 12.318 & 11.580 & 5.310 \\
+$q_C$ & 1.875 & 3.841 & 1.971 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+表~\ref{tab:stage5-morris} 显示，$m$ 的 $\mu^\star=30.711$ 秒，明显高于 $n$ 和 $q_C$；$n$ 的 $\sigma=11.580$ 秒接近 $m$，说明任务量效应强烈依赖车队规模和拥堵背景。\textbf{从 Morris 筛选看，增加 AMR 数量是当前工况下最直接的资源配置杠杆，任务量是次级压力源，单独提高 C03 局部容量的全局收益有限。}
+
+\subsubsection{Sobol 方差分解验证}
+
+Sobol 方法从\textbf{方差分解}度量因素贡献。令 $X=(X_1,\ldots,X_D)$ 且 $D=3$，若 $Y=f(\mathcal{M}(X))$ 平方可积，则
+\[
+f(X)=f_0+\sum_i f_i(X_i)+\sum_{i<j}f_{ij}(X_i,X_j)+\cdots,\qquad
+V=\mathrm{Var}(Y)=\sum_iV_i+\sum_{i<j}V_{ij}+\cdots.
+\]
+一阶效应和总效应定义为
+\[
+S_i=\frac{\mathrm{Var}_{X_i}\left(\mathbb{E}_{X_{\sim i}}[Y\mid X_i]\right)}{\mathrm{Var}(Y)},\qquad
+S_{T_i}=1-\frac{\mathrm{Var}_{X_{\sim i}}\left(\mathbb{E}_{X_i}[Y\mid X_{\sim i}]\right)}{\mathrm{Var}(Y)}.
+\]
+$S_i$ 表示因素 $i$ 的独立方差贡献，$S_{T_i}$ 表示包含全部高阶交互后的总贡献。本实验采用 Saltelli/Sobol 设计，$N=64,D=3$，样本规模为 $N(2D+2)=512$。构造 $A,B,A_B^{(i)}$ 后，典型估计量为
+\[
+\widehat{S_i}=
+\frac{\frac{1}{N}\sum_{k=1}^Ny_B^{(k)}(y_{A_B^{(i)}}^{(k)}-y_A^{(k)})}{\widehat V},\qquad
+\widehat{S_{T_i}}=
+\frac{\frac{1}{2N}\sum_{k=1}^N(y_A^{(k)}-y_{A_B^{(i)}}^{(k)})^2}{\widehat V}.
+\]
+
+\begin{center}
+\small
+\captionof{table}{Sobol 方差分解结果}
+\label{tab:stage5-sobol}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+因素 & $S_1$ & $S_1$ 置信宽度 & $S_T$ & $S_T$ 置信宽度 \\
+\midrule
+$m$ & 0.752 & 0.343 & 0.880 & 0.362 \\
+$n$ & 0.276 & 0.215 & 0.350 & 0.132 \\
+$q_C$ & -0.031 & 0.088 & 0.031 & 0.031 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.6\linewidth]{stage5_sobol}
+\captionof{figure}{Sobol 一阶效应与总效应}
+\label{fig:stage5-sobol}
+\end{center}
+
+表~\ref{tab:stage5-sobol} 和图~\ref{fig:stage5-sobol} 显示，$m$ 的 $S_T=0.880$，显著高于 $n$ 的 0.350 和 $q_C$ 的 0.031。$q_C$ 的 $S_1$ 轻微为负属于有限样本 Monte Carlo 估计误差，不代表容量放松有负贡献；结合其总效应接近 0，可认为 C03 容量在本全局参数域内解释力很弱。\textbf{Sobol 验证了 Morris 排序，$m$ 是主导因素，$n$ 是次级因素，$q_C$ 只适合做局部瓶颈修复。}
+
+\textbf{故名感度分析对仓库管理员的干预优先级作出指导，即优先评估 AMR 数量扩容和任务负荷边界，再对 C03 做针对性容量放松；局部容量放松不能替代全局资源配置。}

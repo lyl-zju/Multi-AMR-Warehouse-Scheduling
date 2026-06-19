@@ -1,0 +1,6 @@
+method,amr_count,task_count,Cmax,total_delay,late_count,service_feasible,total_active_time,total_waiting_time,resource_utilization,max_tasks_per_amr,min_tasks_per_amr,task_count_range,solve_time
+m2,2,12,84.606222,124.593222,4,0,164.264444,0.0,0.970759,6,6,0,119.532
+m2,3,12,59.802333,11.802333,1,0,164.495272,0.097,0.916883,4,4,0,116.747
+m2,4,12,40.840111,0.0,0,1,156.720944,1.954273,0.959357,3,3,0,57.783
+m2,5,12,34.189222,0.0,0,1,157.64645,8.604545,0.9222,3,2,1,57.457
+m2,6,12,29.129889,0.0,0,1,157.503344,9.481445,0.901155,2,2,0,56.886

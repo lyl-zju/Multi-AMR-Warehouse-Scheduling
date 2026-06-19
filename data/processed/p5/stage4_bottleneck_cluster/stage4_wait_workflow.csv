@@ -1,0 +1,7 @@
+mode,iteration,conflict_time,action,target_amr,target_task,segment_type,cell_id,wait_added,before_conflicts,after_conflicts
+wait_reroute_resequence,1,11.2085,wait_before_task,AMR1,T06,task_start,"0,1",12.0,69,31
+wait_reroute_resequence,2,24.729,mid_path_wait,AMR4,T08,transition,"9,2",1.0,31,20
+wait_reroute_resequence,3,25.216,mid_path_wait,AMR1,T06,loaded,"6,2",20.0,20,15
+wait_reroute_resequence,4,26.586,wait_before_task,AMR2,T13,task_start,"12,3",20.0,15,11
+wait_reroute_resequence,5,31.7495,mid_path_wait,AMR4,T08,loaded,"6,4",20.0,11,6
+wait_reroute_resequence,6,46.624,mid_path_wait,AMR2,T13,transition,"11,4",20.0,6,5

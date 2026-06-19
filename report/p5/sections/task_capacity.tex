@@ -1,0 +1,56 @@
+\subsection{任务负荷与系统容量边界}
+
+在 AMR 数量固定后，进一步需要回答的是当前系统在一个业务时域内最多能稳定处理多少任务。这里不复用 P2 已有的任务密度敏感度实验结果，而是在 P5 中单独构造\textbf{嵌套任务池并逐点重优化}；P2 仅作为单个工况的\textbf{任务分配与排序求解器}被调用。这样可以保证任务负荷参数 $n$ 的变化具有\textbf{严格可比性}，并且\textbf{容量边界来自同一套业务判定规则}。
+
+本阶段固定仓库布局、mixed 路径库和 4 台 AMR。业务时域取
+\begin{equation}
+H=55\text{ s},
+\end{equation}
+其来源是基线静态任务批次的最大最晚完成时刻，表示当前任务波次的\textbf{服务承诺时域}。对每个随机种子 $s$，P5 先生成最大任务池 $T_s(N)$，然后只取前缀形成不同规模的任务集合：
+\begin{equation}
+T_s(n)=\{j_1,\ldots,j_n\},\qquad T_s(n)\subset T_s(n+1).
+\end{equation}
+因此，\textbf{$n$ 增大时只是在同一个任务池上增加新任务，而不是更换另一批任务样本}。对每个 $(s,n)$，调用同一 P2 静态优化入口得到完工时间 $C_{\max,s}(n)$、总延期、路径缺失和电量违规。\textbf{容量判定采用保守的 all-seeds 规则}：
+\begin{equation}
+I_s(n)=\indicator\{C_{\max,s}(n)\le H,\ \text{feasible}_s(n)=1\},
+\qquad
+n_{\mathrm{capacity}}=\max\{n:\prod_s I_s(n)=1\}.
+\end{equation}
+
+为刻画任务负荷的局部响应，采用\textbf{离散重优化后的前向有限差分}。令
+\(\widetilde{C}_{\max}(n)\) 表示多种子中位数完工时间，并定义
+\begin{equation}
+\Delta_n \Cmax=\widetilde{C}_{\max}(n+1)-\widetilde{C}_{\max}(n),
+\qquad
+e_n=\frac{n}{\widetilde{C}_{\max}(n)}\Delta_n \Cmax.
+\end{equation}
+$\Delta_n\Cmax$ 表示增加一个任务带来的\textbf{边际完工时间增量}，$e_n$ 是归一化后的\textbf{任务负荷弹性}。该指标来自\textbf{离散工况重优化结果}，不使用插值或平滑曲线替代实际求解点。
+
+\begin{center}
+\small
+\captionof{table}{任务负荷容量边界附近的离散扫描结果}
+\label{tab:task-capacity-frontier}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$n$ & $\min \Cmax$ & $\mathrm{median}\ \Cmax$ & $\max \Cmax$ & $\Delta_n\Cmax$ & all-seeds \\
+\midrule
+12 & 40.840 & 40.840 & 40.840 & 4.884 & 是 \\
+13 & 44.927 & 45.724 & 45.724 & 4.202 & 是 \\
+14 & 49.840 & 49.926 & 50.465 & 6.142 & 是 \\
+15 & 51.537 & 56.068 & 58.345 & 3.654 & 否 \\
+16 & 55.512 & 59.723 & 66.559 & 6.959 & 否 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.74\linewidth]{task_capacity}
+\captionof{figure}{固定 4 台 AMR 下的任务负荷容量边界}
+\label{fig:task-capacity}
+\end{center}
+
+图~\ref{fig:task-capacity} 给出 $n\mapsto \Cmax(n)$ 的\textbf{容量边界曲线}。蓝线为多种子中位数，浅色带表示 min--max 范围，红色虚线为统一业务时域 $H$。由表~\ref{tab:task-capacity-frontier} 可见，\textbf{$n=14$ 时三个种子均满足 $C_{\max,s}(n)\le 55$ 且无硬约束违规}；\textbf{$n=15$ 时中位数已经达到 56.068222，且只有 1 个种子仍满足时域约束}。因此，在固定 4 台 AMR 和 mixed 路径库下，本轮离散重优化得到的\textbf{保守容量边界}为
+\begin{equation}
+n_{\mathrm{capacity}}=14,\qquad n_{\mathrm{cross}}=15.
+\end{equation}
+需要注意的是，\textbf{$\Delta_n\Cmax$ 是每个负荷水平重新优化后的离散响应}；个别高负荷点可能因任务组合和整数重优化结果变化出现\textbf{非单调有限差分}，因此不对曲线做单调化处理，也不使用插值曲线替代离散求解结果。

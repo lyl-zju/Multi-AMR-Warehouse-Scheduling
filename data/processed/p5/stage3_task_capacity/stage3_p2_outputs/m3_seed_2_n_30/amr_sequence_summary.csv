@@ -1,0 +1,5 @@
+amr_id,task_count,task_sequence,missing_transition_count,missing_loaded_path_count,estimated_finish_time,estimated_total_delay,total_energy_used,battery_end,energy_violation_count,assignment_method
+AMR1,7,T06->T03->T14->T21->T15->T20->T28,0,0,109.016333,91.185444,100.1548,-10.1548,1,m3_regret_insertion_ls+mixed
+AMR2,7,T02->T07->T16->T24->T30->T29->T26,0,0,114.868778,66.509444,106.3974,-21.3974,2,m3_regret_insertion_ls+mixed
+AMR3,7,T01->T08->T13->T12->T25->T17->T09,0,0,102.559877,84.727407,85.3622,14.6378,0,m3_regret_insertion_ls+mixed
+AMR4,9,T04->T05->T10->T19->T18->T22->T27->T11->T23,0,0,111.363434,97.111414,107.5814,-27.5814,2,m3_regret_insertion_ls+mixed

@@ -1,0 +1,4 @@
+parameter,S1,S1_conf,ST,ST_conf,sample_count,unit
+m,0.75157,0.343241,0.880071,0.36177,512,variance share of Cmax
+n,0.275956,0.214943,0.349726,0.132328,512,variance share of Cmax
+cap_cluster,-0.030981,0.087721,0.031352,0.031456,512,variance share of Cmax

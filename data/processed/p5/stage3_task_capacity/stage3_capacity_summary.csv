@@ -1,0 +1,2 @@
+H,capacity_rule,n_capacity,first_crossing_n,status,capacity_Cmax_median,max_tested_n,min_tested_n,seed_count,seeds,method,p1_algorithm,amr_count,raw_case_count,max_solve_time,total_solve_time,source
+55.0,all_seeds,14,15,bounded,49.92642,30,1,3,"0,1,2",m2,mixed,4,90,116.045,5164.125,p5_stage3_self_run

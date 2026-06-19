@@ -1,0 +1,56 @@
+check,status,detail
+self-run AMR case coverage,PASS,m2/m3 x 2..6
+m2@m=2 task_count,PASS,12
+m2@m=2 missing_transition_count,PASS,0
+m2@m=2 missing_loaded_path_count,PASS,0
+m2@m=2 energy_violation_count,PASS,0
+m2@m=2 Cmax,PASS,84.606222
+m3@m=2 task_count,PASS,12
+m3@m=2 missing_transition_count,PASS,0
+m3@m=2 missing_loaded_path_count,PASS,0
+m3@m=2 energy_violation_count,PASS,0
+m3@m=2 Cmax,PASS,84.606222
+m2@m=3 task_count,PASS,12
+m2@m=3 missing_transition_count,PASS,0
+m2@m=3 missing_loaded_path_count,PASS,0
+m2@m=3 energy_violation_count,PASS,0
+m2@m=3 Cmax,PASS,59.802333
+m3@m=3 task_count,PASS,12
+m3@m=3 missing_transition_count,PASS,0
+m3@m=3 missing_loaded_path_count,PASS,0
+m3@m=3 energy_violation_count,PASS,0
+m3@m=3 Cmax,PASS,59.802333
+m2@m=4 task_count,PASS,12
+m2@m=4 missing_transition_count,PASS,0
+m2@m=4 missing_loaded_path_count,PASS,0
+m2@m=4 energy_violation_count,PASS,0
+m2@m=4 Cmax,PASS,40.840111
+m3@m=4 task_count,PASS,12
+m3@m=4 missing_transition_count,PASS,0
+m3@m=4 missing_loaded_path_count,PASS,0
+m3@m=4 energy_violation_count,PASS,0
+m3@m=4 Cmax,PASS,40.840111
+m2@m=5 task_count,PASS,12
+m2@m=5 missing_transition_count,PASS,0
+m2@m=5 missing_loaded_path_count,PASS,0
+m2@m=5 energy_violation_count,PASS,0
+m2@m=5 Cmax,PASS,34.189222
+m3@m=5 task_count,PASS,12
+m3@m=5 missing_transition_count,PASS,0
+m3@m=5 missing_loaded_path_count,PASS,0
+m3@m=5 energy_violation_count,PASS,0
+m3@m=5 Cmax,PASS,34.189222
+m2@m=6 task_count,PASS,12
+m2@m=6 missing_transition_count,PASS,0
+m2@m=6 missing_loaded_path_count,PASS,0
+m2@m=6 energy_violation_count,PASS,0
+m2@m=6 Cmax,PASS,29.129889
+m3@m=6 task_count,PASS,12
+m3@m=6 missing_transition_count,PASS,0
+m3@m=6 missing_loaded_path_count,PASS,0
+m3@m=6 energy_violation_count,PASS,0
+m3@m=6 Cmax,PASS,29.129889
+m2 monotone Cmax,PASS,ok
+m3 monotone Cmax,PASS,ok
+m2/m3 marginal trend,PASS,ok
+service feasible AMR threshold,PASS,ok

@@ -1,76 +1,11 @@
-﻿\section{P5：实验汇总、指标分析与管理解释}
+﻿\section{P5：敏感度分析}
+本部分围绕多 AMR 仓库调度系统的性能退化原因开展敏感度分析。全文保持与前序调度流程一致，围绕 AMR 数量、任务负荷与瓶颈通道容量三个可解释参数，判断系统性能恶化究竟来自资源不足还是局部拥堵。
 
-P5 是本文的最终分析层，负责把 P1--P4 的输出整理成统一实验指标、对比图表和管理解释。考虑到 P1--P4 已经形成主要优化结果，P5 先保留统一输入、输出和指标框架，用于承接扩展实验汇总。
 
-\subsection{P5 输入框架}
 
-P5 计划读取以下文件：
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabular}{p{0.34\linewidth}p{0.54\linewidth}}
-\toprule
-输入文件 & 用途 \\
-\midrule
-P1 \verb|path_cost.csv| & 统计路径可达性、路径长度、通行时间和综合成本 \\
-P2 \verb|assignment_result.csv| & 统计任务分配、时间窗、延期、电量和负载均衡 \\
-P3 \verb|schedule_result.csv| & 统计冲突修复后的最终静态执行计划 \\
-P3 \verb|trajectory_schedule.csv| & 统计轨迹占用、等待片段和空间冲突修复效果 \\
-P3 \verb|conflict_log.csv| & 统计冲突类型、冲突位置和修复动作 \\
-P4 \verb|reschedule_result.csv| & 统计动态重排后的任务变化和执行结果 \\
-P4 \verb|reschedule_summary.csv| & 统计动态事件影响、硬约束违反数、F2/F3 等总体指标 \\
-\bottomrule
-\end{tabular}
-\caption{P5 输入接口}
-\end{table}
-
-\subsection{P5 输出框架}
-
-P5 预期输出为：
-
-\begin{itemize}
-  \item \verb|data/processed/p5/experiment_metrics.csv|：统一指标总表；
-  \item \verb|outputs/p5/p5_path_metrics.png|：P1 路径指标汇总图；
-  \item \verb|outputs/p5/p5_schedule_metrics.png|：P2/P3 调度与冲突修复指标图；
-  \item \verb|outputs/p5/p5_dynamic_metrics.png|：P4 动态重排指标图；
-  \item \verb|outputs/p5/p5_management_summary.png|：面向管理解释的关键结论图。
-\end{itemize}
-
-下文实验结果直接来自 P1--P4 的输出。P5 的作用是将这些分散结果统一收敛到 \verb|experiment_metrics.csv|，再形成面向报告和答辩的综合图表。
-
-\subsection{P5 指标体系}
-
-P5 指标按模块分为五组：
-
-\begin{table}[H]
-\centering
-\small
-\begin{tabular}{p{0.16\linewidth}p{0.72\linewidth}}
-\toprule
-模块 & 指标 \\
-\midrule
-P1 & 路径可达率、平均通行时间、平均综合成本、转弯代价、动态风险代价、候选路径数量 \\
-P2 & 缺失路径数、电量违反数、延期任务数、总延期、$C_{\max}$、空驶成本、负载均衡、总能耗 \\
-P3 & 初始冲突数、剩余冲突数、总等待增量、换路次数、换序次数、冲突修复目标值 \\
-P4 & 受影响事件数、变更任务数、新增任务数、封锁违规数、AMR 延误违规数、动态重排总延期、扰动量 \\
-综合 & 服务水平、系统吞吐、稳定性、路径成本、能源消耗和管理改造建议 \\
-\bottomrule
-\end{tabular}
-\caption{P5 指标体系}
-\end{table}
-
-\subsection{P5 报告用途}
-
-P5 不再新增底层优化决策，而是承担“把算法结果变成报告结论”的职责。它需要回答以下问题：
-
-\begin{enumerate}
-  \item 哪种 P1 路径源更适合当前仓库布局；
-  \item P2 中精确模型和启发式方法在质量与速度上如何权衡；
-  \item P3 冲突主要出现在哪些节点、路径段和时间段；
-  \item P4 的动态重排牺牲了多少稳定性，换来了多少可行性和服务水平；
-  \item 对仓库管理者而言，应增加 AMR、调整任务释放节奏，还是优先改造瓶颈通道。
-\end{enumerate}
-
-因此，P5 可以作为报告结构中的分析层保留；扩展时不需要改变 P1--P4 的接口，只需读取既有输出并做汇总分析。
-
+\input{p5/sections/intro}
+\input{p5/sections/baseline}
+\input{p5/sections/amr_marginal}
+\input{p5/sections/task_capacity}
+\input{p5/sections/bottleneck_cluster}
+\input{p5/sections/global_sensitivity}

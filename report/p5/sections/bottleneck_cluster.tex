@@ -1,0 +1,108 @@
+\subsection{瓶颈空间簇与容量影子价值}
+
+任务负荷容量边界给出了系统最多能承受的任务规模，但仍需进一步定位限制调度性能的空间资源。
+
+\subsubsection{边界工况与离散影子价值}
+
+本节选择前文任务负荷与系统容量边界中接近容量边界且仍满足业务时域的工况，即 $n_{\mathrm{capacity}}=14$、方法为 M2 的种子 1 工况，并在该工况上重新展开 P3 时空冲突修复。\textbf{我们把仓库局部通道视为有限容量资源，计算其容量单位放松后的边际价值。}
+
+设 $C$ 为空间网格连通簇，$N_{C,t}$ 为时间桶 $t$ 中占用簇 $C$ 的 AMR 数。基线容量约束抽象为
+\begin{equation}
+N_{C,t}\leq q_C,\qquad q_C=1.
+\end{equation}
+这里的 \textbf{$q_C$ 是局部能同时通过的 AMR 数量}。\textbf{执行 $q_C:1\rightarrow 2$ 可以解释为通道拓宽、设置会车区、调整局部交通规则或增加分拣口前缓冲区。}由于当前 P2 的 MILP 没有显式建立边容量约束，本部分对候选空间簇逐一放松容量并重跑 P3 冲突修复优化，得到\textbf{离散影子价值}
+\begin{equation}
+\pi_C^{J}=J^{\mathrm{base}}-J^{+1}(C),\qquad
+\pi_C^{T}=\Cmax^{\mathrm{base}}-\Cmax^{+1}(C),
+\end{equation}
+其中 P3 修复目标为
+\begin{equation}
+J=100D_{\mathrm{sum}}+5\Cmax+W+2R+20S+20W_0.
+\end{equation}
+$D_{\mathrm{sum}}$ 为总延期，$W$ 为冲突修复插入等待，$R$ 为换路次数，$S$ 为同车换序次数，$W_0$ 为初始等待。$\pi_C^J$ 和 $\pi_C^T$ 分别表示簇容量增加 1 后目标函数和最大完工时间的真实改善量；\textbf{最终瓶颈排序以重优化后的有限差分为准，而不是以经过次数或热图颜色为准。}
+
+\begin{center}
+\small
+\resizebox{0.98\linewidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    analysisstep/.style={
+        draw=blue!28!black,
+        fill=blue!4,
+        rounded corners=2pt,
+        line width=0.55pt,
+        minimum height=1.18cm,
+        text width=3.25cm,
+        align=center,
+        inner sep=5pt,
+        text=black!88
+    },
+    decisionsstep/.style={
+        draw=teal!24!black,
+        fill=teal!3,
+        rounded corners=2pt,
+        line width=0.55pt,
+        minimum height=1.18cm,
+        text width=3.25cm,
+        align=center,
+        inner sep=5pt,
+        text=black!88
+    },
+    arrow/.style={-{Stealth[length=2.15mm]}, line width=0.55pt, draw=black!45},
+    node distance=0.72cm and 0.92cm
+]
+\node[analysisstep] (base) {\textbf{1 基线工况}\\边界任务规模\\记录 $\Cmax^{\mathrm{base}},J^{\mathrm{base}},W^{\mathrm{base}}$};
+\node[analysisstep, right=of base] (score) {\textbf{2 时空投影}\\轨迹映射到网格--时间桶\\计算 $s(c)$};
+\node[analysisstep, right=of score] (cluster) {\textbf{3 候选簇}\\连通合并\\保留冲突/等待信号};
+\node[decisionsstep, below=of cluster] (relax) {\textbf{4 容量放松}\\逐簇执行 $q_C\leftarrow q_C+1$\\重跑 P3 修复};
+\node[decisionsstep, left=of relax] (value) {\textbf{5 影子价值}\\计算 $\pi_C^J,\pi_C^T$\\按 $\Delta\Cmax$ 排序};
+\node[decisionsstep, left=of value] (decision) {\textbf{6 工程判读}\\识别主瓶颈\\给出布局/规则改造};
+\draw[arrow] (base) -- (score);
+\draw[arrow] (score) -- (cluster);
+\draw[arrow] (cluster) -- (relax);
+\draw[arrow] (relax) -- (value);
+\draw[arrow] (value) -- (decision);
+\end{tikzpicture}}
+\captionof{figure}{瓶颈空间簇容量敏感度分析流程}
+\label{fig:stage4-sensitivity-flow}
+\end{center}
+
+\subsubsection{前置筛选}
+我们对候选簇进行空间统计。轨迹点按 $1\mathrm{m}\times 1\mathrm{m}$ 网格和 $1\mathrm{s}$ 时间桶投影，并对同一 AMR 在同一时间桶内的重复采样去重。对每个网格 $c$ 计算占用、冲突修复事件、冲突等待和延期压力的标准化分量：
+\begin{equation}
+s(c)=0.25z(\mathrm{occ}_c)+0.30z(\mathrm{conf}_c)+0.30z(\mathrm{wait}_c)+0.15z(\mathrm{delay}_c).
+\end{equation}
+相邻高分网格合并成连通簇后，只对含有冲突或等待信号的簇做容量放松重求。\textbf{若一个区域只是经过次数高，但容量放松后 $\pi_C^J$ 近似为 0，则只能称为高流量区，不能作为主瓶颈。}
+
+本工况中，轨迹、冲突、等待和延期信号共覆盖 56 个网格，其中 15 个网格的综合筛选分数为正。采用正分数网格的 70\% 分位数作为阈值，得到 $s(c)\geq 1.731118$ 的高压力网格；再要求该网格必须含有冲突事件或等待信号，最终保留 5 个候选网格。由于这 5 个网格之间不相邻，连通合并后仍为 5 个单元簇，因此它们是由数据自动筛出的候选集，而不是人工指定的固定数量。\textbf{为避免漏检，又对路径库中其余 15 个未纳入网格执行同样的容量 $+1$ 重优化，结果它们的 $\Delta \Cmax$ 均为 0，说明当前主瓶颈没有被前面的筛选遗漏到更强的同类网格。}
+
+\subsubsection{容量放松重优化}
+
+\begin{center}
+\small
+\captionof{table}{候选瓶颈簇的容量放松有限差分}
+\label{tab:bottleneck-capacity-test}
+\begin{tabular}{@{}cccccccc@{}}
+\toprule
+簇 & 位置 & 最近设施 & 筛选分数 & $\Cmax^{\mathrm{base}}$ & $\Cmax^{+1}$ & $\Delta\Cmax$ & $\Delta W$ \\
+\midrule
+C03 & $(9,2)$ & RACK\_E / Z\_SORT & 1.776 & 83.870 & 69.142 & 14.728 & 49.0 \\
+C02 & $(6,4)$ & RACK\_D / Z\_SORT & 3.220 & 83.870 & 80.950 & 2.920 & 32.0 \\
+C04 & $(11,4)$ & WALL\_RIGHT / Z\_OUT & 2.416 & 83.870 & 83.870 & 0.000 & 0.0 \\
+C05 & $(12,3)$ & WALL\_RIGHT / Z\_OUT & 2.290 & 83.870 & 83.870 & 0.000 & 0.0 \\
+C01 & $(6,2)$ & RACK\_C / Z\_SORT & 2.319 & 83.870 & 83.870 & 0.000 & 0.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.95\linewidth]{stage4_bottleneck_cluster}
+\captionof{figure}{瓶颈空间簇容量松弛验证位置}
+\label{fig:stage4-bottleneck-cluster}
+\end{center}
+
+表~\ref{tab:bottleneck-capacity-test} 给出了筛选候选的容量放松结果，图~\ref{fig:stage4-bottleneck-cluster} 展示所有验证位置；路径库补集的 15 个未纳入网格在附加验证中全部得到 $\Delta \Cmax=0$。基线 P3 修复后 $\Cmax=83.869555$，冲突修复等待为 93.0 秒，目标函数为 17263.345675。对 5 个候选空间簇逐一执行容量 $+1$ 并重跑 P3 后，\textbf{C03 的边际改善最大：$\Cmax$ 降至 69.141718，减少 14.727837 秒；冲突等待从 93.0 秒降至 44.0 秒，减少 49.0 秒；目标函数下降 10364.363885。}C02 排名第二，仍有 2.919667 秒的 $\Delta \Cmax$ 和 32.0 秒的等待改善。C04、C05 与 C01 的 $\Delta \Cmax$ 均为 0，其中 C01 甚至出现目标函数轻微上升，说明其容量放松并未缓解当前主要拥堵结构。
+
+\subsubsection{瓶颈排序与工程含义}
+
+因此，\textbf{C03 是当前边界工况下的主导空间瓶颈，位置在 $(9,2)$，对应 RACK\_E 与 Z\_SORT 的汇入带。}这个结论来自容量松弛后的离散影子价值：它同时在 $\Cmax$、总等待和目标函数三个层面都给出最大的边际收益。\textbf{工程上，优先改造 C03 所在通道最有意义，具体措施包括扩大 RACK\_E 附近通道会车能力、在分拣区前设置短缓冲区、限制对向穿越，或将进入 Z\_SORT 的任务释放节奏做错峰控制。}C02 可作为次级改造点继续评估，而 C04、C05 与 C01 更适合保留监测而不是立即扩容。

@@ -1,0 +1,2 @@
+stage3_run_id,stage3_method,n_capacity,selected_seed,baseline_Cmax,baseline_total_wait_added,baseline_objective,best_cluster_id,best_nearest_zone,best_nearest_obstacle_id,best_Delta_Cmax,best_Delta_wait,best_Delta_objective,status,interpretation
+stage3_m2_s1_n14,m2,14,1,83.869555,93.0,17263.345675,C03,Z_SORT,RACK_E,14.727837,49.0,10364.363885,single_cluster_bottleneck,finite-difference shadow value from P3 spatial capacity relaxation

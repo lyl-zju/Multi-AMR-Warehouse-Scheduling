@@ -1,0 +1,48 @@
+{
+  "status": "PASS",
+  "errors": [],
+  "seed": 1,
+  "method": "m2",
+  "p1_algorithm": "mixed",
+  "p3_mode": "wait_reroute_resequence",
+  "levels": {
+    "m": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "n": [
+      12,
+      13,
+      14,
+      15
+    ],
+    "cap_cluster": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cluster": {
+    "cluster_id": "C03",
+    "cell_ids": "9,2",
+    "stage4_delta_Cmax": 14.727837,
+    "nearest_zone": "Z_SORT",
+    "nearest_obstacle_id": "RACK_E"
+  },
+  "morris_sample_count": 40,
+  "sobol_sample_count": 512,
+  "unique_run_count": 48,
+  "conflict_nonzero_count": 34,
+  "outputs": {
+    "morris_samples": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/data/processed/p5/stage5_morris_sobol/stage5_morris_samples.csv",
+    "morris_runs": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/data/processed/p5/stage5_morris_sobol/stage5_morris_runs.csv",
+    "morris_results": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/data/processed/p5/stage5_morris_sobol/stage5_morris_results.csv",
+    "sobol_samples": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/data/processed/p5/stage5_morris_sobol/stage5_sobol_samples.csv",
+    "sobol_runs": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/data/processed/p5/stage5_morris_sobol/stage5_sobol_runs.csv",
+    "sobol_results": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/data/processed/p5/stage5_morris_sobol/stage5_sobol_results.csv",
+    "morris_figure": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/outputs/p5/stage5_morris.png",
+    "sobol_figure": "/Users/maverick/Desktop/运筹学大作业/Multi-AMR-Warehouse-Scheduling/outputs/p5/stage5_sobol.png"
+  }
+}

@@ -1,0 +1,38 @@
+﻿% !TeX program = xelatex
+\documentclass[lang=cn,chinesefont=nofont,a4paper,newtx]{elegantpaper}
+
+\title{Multi-AMR Warehouse Scheduling 敏感度分析}
+\author{运筹学大作业小组}
+\date{}
+
+\newcommand{\Cmax}{C_{\max}}
+\newcommand{\indicator}{\mathbf{1}}
+\newcommand{\thetaop}{\boldsymbol{\theta}}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+
+\setCJKmainfont{Songti SC}
+\setCJKsansfont{PingFang SC}
+\setCJKmonofont{Hiragino Sans GB}
+
+\graphicspath{{../figures/}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+本文围绕多 AMR 仓库调度系统的性能退化原因开展敏感度分析。分析保持与前序调度流程一致，围绕 AMR 数量、任务负荷与瓶颈通道容量三个可解释参数，判断系统性能恶化究竟来自资源不足还是局部拥堵。
+\keywords{多 AMR 调度，敏感度分析，Cmax，拥堵热点，滚动重排}
+\end{abstract}
+
+\section{敏感度分析}
+\input{sections/intro}
+\input{sections/baseline}
+\input{sections/amr_marginal}
+\input{sections/task_capacity}
+\input{sections/bottleneck_cluster}
+\input{sections/global_sensitivity}
+
+\end{document}

@@ -1,0 +1,65 @@
+check,status,detail
+P2 assignment_result.csv,PASS,12 rows
+P2 assignment_result.csv,PASS,required columns present
+P2 task coverage,PASS,12 static tasks
+P2 assignment_method,PASS,m2_milp_goal_programming+mixed
+P2 sequence AMR1,PASS,3 tasks
+P2 predecessor AMR1,PASS,chain ok
+P2 init node AMR1,PASS,IN1
+P2 sequence AMR2,PASS,3 tasks
+P2 predecessor AMR2,PASS,chain ok
+P2 init node AMR2,PASS,IN2
+P2 sequence AMR3,PASS,3 tasks
+P2 predecessor AMR3,PASS,chain ok
+P2 init node AMR3,PASS,CHG1
+P2 sequence AMR4,PASS,3 tasks
+P2 predecessor AMR4,PASS,chain ok
+P2 init node AMR4,PASS,CHG2
+P2 Cmax,PASS,40.840111
+P3 schedule_result.csv,PASS,12 rows
+P3 schedule_result.csv,PASS,required columns present
+P3 repair_summary.csv,PASS,3 rows
+P3 conflict_log.csv,PASS,15 rows
+P3 unique tasks,PASS,12 tasks
+P3 assignment_method,PASS,m2_milp_goal_programming+mixed+p3_wait_reroute_resequence
+P3 sequence AMR1,PASS,3 tasks
+P3 predecessor AMR1,PASS,chain ok
+P3 sequence AMR2,PASS,3 tasks
+P3 predecessor AMR2,PASS,chain ok
+P3 sequence AMR3,PASS,3 tasks
+P3 predecessor AMR3,PASS,chain ok
+P3 sequence AMR4,PASS,3 tasks
+P3 predecessor AMR4,PASS,chain ok
+P3 Cmax,PASS,46.596970
+P3 selected row,PASS,wait_reroute_resequence
+P3 selected mode,PASS,wait_reroute_resequence
+P3 remaining_conflicts,PASS,0
+P3 missing path counts,PASS,0 / 0
+P3 trajectory_schedule.csv monotonic AMR1,PASS,417 samples
+P3 trajectory_schedule.csv monotonic AMR2,PASS,460 samples
+P3 trajectory_schedule.csv monotonic AMR3,PASS,442 samples
+P3 trajectory_schedule.csv monotonic AMR4,PASS,481 samples
+P4 reschedule_result.csv,PASS,13 rows
+P4 reschedule_result.csv,PASS,required columns present
+P4 reschedule_summary.csv,PASS,28 rows
+P4 dynamic_event_impact.csv,PASS,3 rows
+P4 p4_method_comparison.csv,PASS,1 rows
+P4 p4_weight_sensitivity.csv,PASS,3 rows
+P4 unique tasks,PASS,13 tasks
+P4 reschedule_method,PASS,rolling_horizon_regret_insertion_local_search
+P4 reschedule_status,PASS,all scheduled
+P4 method comparison row,PASS,滚动时域重排
+P4 hard violations,PASS,0
+P4 conflict success,PASS,1.0
+P4 all dynamic tasks,PASS,1
+P4 event impact rows,PASS,3
+P4 Cmax,PASS,61.918082
+P4 total_delay,PASS,23.405971
+P4 TotalAddedDelay,PASS,43.996446
+P4 changed tasks,PASS,4
+P4 new tasks,PASS,1
+P4 strategy id,PASS,rolling_horizon
+P4 trajectory_schedule.csv monotonic AMR1,PASS,417 samples
+P4 trajectory_schedule.csv monotonic AMR2,PASS,511 samples
+P4 trajectory_schedule.csv monotonic AMR3,PASS,442 samples
+P4 trajectory_schedule.csv monotonic AMR4,PASS,639 samples

@@ -1,0 +1,4 @@
+amr_id,task_count,task_sequence,missing_transition_count,missing_loaded_path_count,estimated_finish_time,estimated_total_delay,total_energy_used,battery_end,energy_violation_count,assignment_method
+AMR1,5,T01->T04->T05->T11->T06,0,0,67.502333,31.502333,62.1834,27.8166,0,m2_milp_goal_programming+mixed
+AMR2,5,T02->T08->T10->T12->T09,0,0,68.410778,20.410778,62.2178,22.7822,0,m2_milp_goal_programming+mixed
+AMR3,4,T07->T13->T14->T03,0,0,69.348519,37.348519,56.1438,43.8562,0,m2_milp_goal_programming+mixed

@@ -1,0 +1,4 @@
+parameter,mu_star,sigma,mu_star_conf,sample_count,unit
+m,30.710633,10.943146,6.490435,40,seconds of Cmax
+n,12.3183,11.580292,5.310467,40,seconds of Cmax
+cap_cluster,1.875,3.841386,1.970756,40,seconds of Cmax
