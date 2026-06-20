@@ -118,31 +118,13 @@ python .\src\p4_dynamic_reschedule\dynamic_reschedule.py
 python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \end{lstlisting}
 
+为避免后续章节反复解释模块边界，本文在此统一说明：系统遵循严格的单向数据流，前一模块只向后一模块提供结构化结果，后一模块在其职责范围内继续细化或校验，而不回头重写前序核心决策。P1 提供路径空间和轨迹采样，P2 负责任务级可行分配、排序与路径选择，P3 负责轨迹级安全执行与冲突修复，P4 在维持已执行计划稳定性的前提下处理动态扰动，P5 则基于上述闭环结果提取资源阈值、容量边界和主导瓶颈等运营指标。
+
 \section{模块分工与课程知识点}
 
 \subsection{五个工作包划分}
 
-为了体现多成员协作和完整建模链路，本文按 P0/P1、P2、P3、P4、P5 五个工作包组织报告结构。每个工作包既有清晰的输入输出边界，也对应运筹学课程中的不同知识点。
-
-\begin{table}[H]
-\centering
-\scriptsize
-\begin{tabular}{p{0.09\linewidth}p{0.09\linewidth}p{0.17\linewidth}p{0.34\linewidth}p{0.14\linewidth}}
-\toprule
-负责人 & 工作包 & 主题 & 主要任务 & 交付内容 \\
-\midrule
-\input{p1/module3/work_package_row}\\
-\input{p2/module3/work_package_row}\\
-\input{p3/module3/work_package_row}\\
-\input{p4/module3/work_package_row}\\
-\input{p5/module3/work_package_row}\\
-\bottomrule
-\end{tabular}
-\caption{五个工作包与小组分工}
-\label{tab:work-packages}
-\end{table}
-
-表 \ref{tab:work-packages} 展示了五个工作包之间的边界：P0/P1 负责场景和路径，P2 负责任务级调度，P3 负责轨迹级可执行性，P4 负责动态扰动，P5 负责灵敏度分析和管理解释。这样的拆分能够对应五人分工，同时保证各模块之间通过明确数据接口串联。
+为了体现完整建模链路，本文按 P0/P1、P2、P3、P4、P5 五个工作包组织报告结构。每个工作包既有清晰的输入输出边界，也对应运筹学课程中的不同知识点：P0/P1 负责场景和路径，P2 负责任务级调度，P3 负责轨迹级可执行性，P4 负责动态扰动，P5 负责灵敏度分析和管理解释。小组成员分工统一放在附录 A 的表 \ref{tab:appendix-member-division} 中。
 
 \subsection{课程知识点对应}
 
@@ -186,24 +168,6 @@ python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \newpage
 \input{p5/p5}
 
-\section{实验结果与分析}
-\subsection{P1：路径生成结果}
-\input{p1/experiment}
-\subsection{P2：任务级调度优化结果}
-\input{p2/experiment}
-\subsection{P3：轨迹冲突检测与修复结果}
-\input{p3/experiment}
-\subsection{P4：动态滚动重排结果}
-\input{p4/experiment}
-\subsection{P5：灵敏度分析与管理解释}
-\input{p5/experiment}
-
-\subsection{实验综合结论}
-
-第 9 章的实验结果共同验证了项目从路径生成到运营分析的完整链路。P1 提供多类基础路径源，P2 在任务级完成 AMR 指派、排序和路径选择，并通过 mixed 候选库改善完工时间与综合目标；P3 进一步揭示任务级可行不等于轨迹级可执行，并通过等待修复将剩余冲突降为 0；P4 说明动态封锁、AMR 延误和新增任务到达后，滚动重排仍能维持硬约束可行；P5 则把这些调度结果转化为 AMR 数量、任务负荷和瓶颈通道容量的管理判断。
-
-因此，本文实验部分不仅给出了各模块自身的数值结果，也说明了模块之间的递进关系：路径库决定调度可选空间，任务级优化决定初始效率，轨迹级修复决定实际执行安全，动态重排决定扰动下的鲁棒性，灵敏度分析决定系统扩容和改造的优先级。
-
 \section{结论}
 
 本项目最终形成了一套动态仓储多 AMR 调度优化系统。P1 负责二维候选路径生成，P2 将任务分配和任务排序建模为带路径选择、电量检查和目标规划优先级的调度问题，P3 从轨迹层面验证并修复多机器人冲突，P4 在动态事件下执行滚动时域重排，P5 对 AMR 数量、任务负荷和瓶颈通道容量开展灵敏度分析。
@@ -218,20 +182,18 @@ python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \appendix
 \section{成员分工}
 
-本附录汇总本项目五名成员在模型设计、程序实现、实验分析和报告撰写中的主要分工。各成员围绕 P0--P5 工作包协同完成，从二维场景建模、候选路径生成、任务分配排序、轨迹冲突修复、动态滚动重排到灵敏度分析，形成完整的多 AMR 调度优化链路。
-
 \begin{table}[H]
 \centering
-\small
-\begin{tabular}{p{0.12\linewidth}p{0.13\linewidth}p{0.20\linewidth}p{0.43\linewidth}}
+\scriptsize
+\begin{tabular}{p{0.09\linewidth}p{0.09\linewidth}p{0.17\linewidth}p{0.34\linewidth}p{0.14\linewidth}}
 \toprule
-成员 & 工作包 & 分工主题 & 主要贡献 \\
+负责人 & 工作包 & 主题 & 主要任务 & 交付内容 \\
 \midrule
-李彦霖 & P0/P1 & 场景建模与候选路径生成，PPT制作 & 负责仓储二维场景、节点和障碍物数据整理，完成 A*、VG、AVG、DAVG 四类基础路径源，输出路径成本表和轨迹样本。 \\
-朱熠正 & P2 & 任务分配与排序优化，报告框架搭建 & 负责 mixed 多候选路径库构建、多 AMR 任务指派、车内任务排序、路径选择和时间窗约束建模，比较贪心、两阶段整数规划、联合 MILP 与启发式局部搜索方法。 \\
-江亚楠 & P3 & 时空冲突检测与修复 & 负责将任务级计划展开为二维时空轨迹，检测 AMR footprint 冲突和节点容量冲突，并通过等待、换路和换序策略完成冲突修复。 \\
-倪振昊 & P4 & 动态事件与滚动重排 & 负责通道封锁、AMR 延误和新增任务等动态事件建模，在冻结已执行任务的基础上重排未来任务池，并完成动态重排结果可视化。 \\
-张铭浥 & P5 & 灵敏度分析与管理解释 & 负责基线校验、AMR 数量边际分析、任务容量边界、瓶颈通道容量和 Morris/Sobol 全局灵敏度分析，形成运营管理建议。 \\
+\input{p1/module3/work_package_row}\\
+\input{p2/module3/work_package_row}\\
+\input{p3/module3/work_package_row}\\
+\input{p4/module3/work_package_row}\\
+\input{p5/module3/work_package_row}\\
 \bottomrule
 \end{tabular}
 \caption{小组成员分工汇总}

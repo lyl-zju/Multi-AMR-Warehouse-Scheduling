@@ -1,6 +1,6 @@
 \section{P1：二维候选路径生成}
 
-P1 是整个系统的路径基础层。它不直接决定任务由谁执行，也不处理多机器人避碰，而是在二维仓库平面上为关键节点对生成候选路径、路径成本、栅格轨迹和轨迹采样表。下游 P2 使用 P1 的成本表做任务分配与排序，P3/P4 使用 P1 的轨迹样本展开二维时空轨迹。因此，P1 的核心作用不是简单寻找一条最短路，而是把仓库平面、障碍物、安全膨胀、路径偏好和动态风险转化为后续调度模型可读取的结构化输入。
+P1 面向给定二维仓库场景，为关键节点对生成可行候选路径及其成本、几何记录和轨迹采样表。其输入包括节点、障碍物、功能区域、AMR 初始点和任务取送货点；输出包括路径成本表、成本矩阵、路径几何记录和相对时间轨迹采样表。P1 的建模重点是把连续仓库平面中的可达性、障碍物膨胀、转向偏好和动态风险代价统一写入可复现的路径生成结果。
 
 \subsection{建模对象与输出目标}
 
@@ -18,9 +18,9 @@ P1 的输入来自 P0 整理后的二维仓库场景，主要包括节点表、�
 \[
   t(p_{ij})=\frac{d(p_{ij})}{v}.
 \]
-除了距离和时间，P1 还记录转角数、转角代价、动态区域代价、轨迹采样点数等指标。这些指标一方面用于算法比较，另一方面进入 P2 的路径选择和 P3/P4 的轨迹展开。
+除了距离和时间，P1 还记录转角数、转角代价、动态区域代价、轨迹采样点数等指标。这些指标一方面用于算法比较，另一方面用于路径选择、轨迹展开和可复现实验检查。
 
-障碍物处理采用“AMR footprint 膨胀”思想。货架、墙体和动态封锁区在路径规划时不是只按原始几何边界处理，而是按机器人半径进行膨胀，使路径几何中心线与障碍物保持安全距离。这样，P1 输出的路径在后续展开为 footprint 轨迹时才不会天然穿越障碍区域。
+障碍物处理采用“AMR footprint 膨胀”思想。货架、墙体和动态封锁区在路径规划时不是只按原始几何边界处理，而是按机器人半径进行膨胀，使路径几何中心线与障碍物保持安全距离。这样，路径展开为 footprint 轨迹时不会天然穿越障碍区域。
 
 \subsection{算法框架}
 
@@ -44,7 +44,7 @@ P1 实现了 \verb|basic_astar|、\verb|vg|、\verb|avg|、\verb|davg| 四类路
 \label{tab:p1-methods}
 \end{table}
 
-表 \ref{tab:p1-methods} 说明 P1 并不是简单比较几种最短路算法，而是为后续调度层生成不同偏好的基础路径源。A* 偏重栅格可达性，VG 偏重连续空间中的几何最短，AVG 引入转弯平滑性，DAVG 引入动态风险代价。后续 P2 可以在这些单算法结果之上进一步融合、去重并构造 mixed 多候选路径库。
+表 \ref{tab:p1-methods} 说明 P1 并不是简单比较几种最短路算法，而是生成不同偏好的基础路径源。A* 偏重栅格可达性，VG 偏重连续空间中的几何最短，AVG 引入转弯平滑性，DAVG 引入动态风险代价。这些单算法结果可以进一步融合、去重并构造 mixed 多候选路径库。
 
 \subsection{Grid A*：栅格可达性基线}
 
@@ -112,7 +112,7 @@ DAVG 在 AVG 的基础上处理动态封锁或风险区域。它保留状态增�
 
 DAVG 还加入活跃区域建图：对每个 OD 对，只把起终点走廊附近的障碍物角点加入候选顶点，同时动态障碍物角点始终保留。这样可以减少远离当前 OD 的障碍角点带来的图规模。为了不牺牲可行性，可见性检测仍对所有硬障碍物进行；若局部活跃图无法找到路径，则回退到完整障碍角点图。
 
-在当前静态主算例中，DAVG 的平均动态代价为 0，说明选出的路径没有进入动态风险缓冲区。因此，DAVG 与 AVG 的几何距离、转角数和总成本在 P1 层面基本一致。这不是 DAVG 失效，而是说明当前 P1 静态路径比较没有触发风险绕行；DAVG 的主要价值体现在后续 P4 动态事件或封锁场景中。
+在当前静态主算例中，DAVG 的平均动态代价为 0，说明选出的路径没有进入动态风险缓冲区。因此，DAVG 与 AVG 的几何距离、转角数和总成本在 P1 层面基本一致。这不是 DAVG 失效，而是说明当前静态路径比较没有触发风险绕行；DAVG 的风险绕行价值会在动态事件或封锁场景中体现。
 
 \subsection{算法对比实验设计}
 
@@ -144,7 +144,7 @@ DAVG & 272 & 6.071 & 1.765 & 0.000 & 6.695 \\
 \label{fig:p1-algorithm-metrics}
 \end{figure}
 
-图 \ref{fig:p1-algorithm-metrics} 从可视化角度进一步说明：如果只看距离，VG 是当前算例中最短的单路径源；如果考虑转向平滑性，AVG/DAVG 比 VG 稍微牺牲距离，但用转角惩罚表达执行偏好；如果考虑动态风险，当前样本中四类路径动态代价均为 0，说明风险区域并未影响这些静态 OD 最优路径。这为后文解释 P2 中不同路径源对调度结果的影响提供了基础。
+图 \ref{fig:p1-algorithm-metrics} 从可视化角度进一步说明：如果只看距离，VG 是当前算例中最短的单路径源；如果考虑转向平滑性，AVG/DAVG 比 VG 稍微牺牲距离，但用转角惩罚表达执行偏好；如果考虑动态风险，当前样本中四类路径动态代价均为 0，说明风险区域并未影响这些静态 OD 最优路径。这为比较不同路径源的调度影响提供了基础。
 
 \subsection{代表性 OD 对路径形态比较}
 
@@ -190,20 +190,17 @@ P1 的主要输出位于 \verb|data/processed/p1/<algorithm>/|：
 
 \begin{itemize}
   \item \verb|key_nodes.csv|：参与路径规划的关键节点；
-  \item \verb|path_cost.csv|：面向 P2 的 OD 路径成本表；
+  \item \verb|path_cost.csv|：OD 路径成本表；
   \item \verb|path_grid_cells.csv|：路径穿越栅格或可视图顶点记录；
-  \item \verb|path_trajectory_samples.csv|：面向 P3/P4 的相对时间轨迹采样；
+  \item \verb|path_trajectory_samples.csv|：相对时间轨迹采样；
   \item \verb|path_cost_matrix_time.csv| 和 \verb|path_cost_matrix_total.csv|：时间矩阵和综合成本矩阵。
 \end{itemize}
 
-其中，\verb|path_cost.csv| 提供 \verb|from_node|、\verb|to_node|、\verb|path_uid|、\verb|distance|、\verb|travel_time|、\verb|turn_cost|、\verb|dynamic_cost|、\verb|total_cost| 和 \verb|planning_status|。P2 加载时会过滤 \verb|planning_status != ok| 的路径，避免不可达 OD 被误用于调度。
+其中，\verb|path_cost.csv| 提供 \verb|from_node|、\verb|to_node|、\verb|path_uid|、\verb|distance|、\verb|travel_time|、\verb|turn_cost|、\verb|dynamic_cost|、\verb|total_cost| 和 \verb|planning_status|。其中 \verb|planning_status| 用于标记 OD 对是否成功生成路径，避免不可达路径被误用。
 
-\verb|path_trajectory_samples.csv| 提供相对出发时刻的二维轨迹样本，包括 \verb|offset_time|、\verb|x|、\verb|y|、\verb|theta|、\verb|speed| 和 \verb|footprint_radius|。P3/P4 读取该表后，将相对时间平移到具体任务的绝对开始时间，从而形成可检测冲突的时空轨迹。
+\verb|path_trajectory_samples.csv| 提供相对出发时刻的二维轨迹样本，包括 \verb|offset_time|、\verb|x|、\verb|y|、\verb|theta|、\verb|speed| 和 \verb|footprint_radius|。该表保留路径上的几何点、朝向、速度和机器人 footprint 半径，便于后续按具体任务开始时间展开为绝对时空轨迹。
 
-通过上述表结构，P1 完成了从“二维空间路径”到“调度成本矩阵”和“时空轨迹样本”的转换。路径几何用于解释算法差异，时间矩阵用于 P2 的任务排序与衔接，轨迹采样则用于 P3/P4 的冲突检测与动态重排。
+通过上述表结构，P1 完成了从“二维空间路径”到“路径成本矩阵”和“轨迹采样数据”的转换。路径几何用于解释算法差异，时间矩阵用于记录 OD 对通行时间，轨迹采样用于保留路径在二维平面中的可执行形态。
 
-\subsection{与后续模块的关系}
-
-P1 的设计边界是“生成候选路径与轨迹样本”，不在 P1 内部求解全局多机器人调度。这样可以让路径算法与调度算法解耦：路径规划层只关心二维可达性、距离、转弯和动态风险；P2--P4 再根据任务、时间窗、电量和冲突约束选择和调整这些候选路径。
-
-这种分层也解释了为什么 P1 需要保留多种路径算法。若 P1 只输出单一最短路结果，P2 的路径选择变量就会退化；当 P1 提供多种路径偏好的单算法结果后，P2 才能进一步构建 mixed 多候选路径库，并在“短距离、少转弯、低风险、低冲突潜力”之间进行组合优化。P3/P4 则进一步使用轨迹采样表验证这些任务级路径是否在时间维度上真正可执行。
+\subsection{综合实验验证}
+\input{p1/experiment}
