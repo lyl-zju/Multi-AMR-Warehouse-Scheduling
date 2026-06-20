@@ -131,11 +131,11 @@ python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \toprule
 负责人 & 工作包 & 主题 & 主要任务 & 交付内容 \\
 \midrule
-\input{p1/module3/work_package_row}
-\input{p2/module3/work_package_row}
-\input{p3/module3/work_package_row}
-\input{p4/module3/work_package_row}
-\input{p5/module3/work_package_row}
+李彦霖 & P0/P1 & 场景与路径生成 & 构造二维仓库平面图，建立障碍物与关键节点数据；比较 A*、VG、AVG、DAVG，并形成 mixed 多候选路径接口 & 场景图、路径库、轨迹样本 \\
+朱熠正 & P2 & 任务分配与排序 & 决定任务指派、AMR 内部任务顺序、空驶/载货路径选择，并校验时间窗与电量 & 任务分配表、方法对比 \\
+江亚楠 & P3 & 时空冲突修复 & 将任务级计划展开为轨迹级计划，检测 footprint 冲突和节点容量冲突，并通过等待、换路、换序修复 & 修复后时间表、冲突日志 \\
+倪振昊 & P4 & 动态滚动重排 & 处理通道封锁、AMR 延误和新增任务，冻结历史任务并重排未来任务池 & 动态重排表、可视化 \\
+张铭浥 & P5 & 灵敏度分析 & 沿用 P1--P4 的调度链路和评价口径，形成基线校验、边际分析、容量边界、瓶颈簇验证和全局灵敏度筛选 & 灵敏度结果表、灵敏度图表、管理建议 \\
 \bottomrule
 \end{tabular}
 \caption{五个工作包与小组分工}
@@ -163,11 +163,12 @@ python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \toprule
 成果点 & 关键结果 & 含义 \\
 \midrule
-\input{p1/module3/core_result_row}
-\input{p2/module3/core_result_row}
-\input{p3/module3/core_result_row}
-\input{p4/module3/core_result_row}
-\input{p5/module3/core_result_row}
+P1 多候选路径库 & mixed 平均每个 OD 有 1.77 条候选，最多 4 条 & 调度层不再被单一路径源绑定，可在多路径中择优 \\
+P2 联合优化 & m2/m3 将 $C_{\max}$ 从 m0 的 49.015 降至 40.578 & 任务指派与排序联合建模显著改善系统完工时间 \\
+P2 快速启发式 & m3 与 m2 达到相同 F2/F3，但 0.198s 对 116.728s & 启发式在本算例达到精确模型质量，速度提升约 589 倍 \\
+P3 冲突消解 & 初始 21 个时空冲突全部修复为 0 & 证明任务级可行不等于轨迹级可执行，P3 层不可省略 \\
+P4 动态重排 & 轨迹冲突、封锁违规、AMR 延误违规均为 0 & 动态扰动下仍能保持计划可执行性 \\
+P5 灵敏度分析 & 识别 4 台 AMR 服务阈值、14 个任务保守容量边界、C03 主导空间瓶颈，并通过 Morris/Sobol 验证 AMR 数量为主导因素 & 将调度结果转化为扩车、控量和通道改造的决策依据 \\
 \bottomrule
 \end{tabular}
 \caption{核心成果概览}
