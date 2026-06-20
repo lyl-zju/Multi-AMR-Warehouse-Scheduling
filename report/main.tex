@@ -1,4 +1,4 @@
-﻿% !TeX program = xelatex
+% !TeX program = xelatex
 \PassOptionsToPackage{quiet}{fontspec}
 \documentclass[12pt,a4paper,UTF8]{ctexart}
 \usepackage{projectreport}
@@ -51,7 +51,7 @@
 
 \begin{enumerate}
   \item 构造二维仓库场景，统一节点、障碍物、货架区、封锁区和动态事件的数据接口。
-  \item 用 A*、VG、AVG、DAVG 和 mixed 候选路径库为 P2--P4 提供路径成本和轨迹样本。
+  \item 用 A*、VG、AVG、DAVG 生成基础路径源，并在 P2 中融合为 mixed 候选路径库供后续调度使用。
   \item 在 P2 中比较贪心、两阶段整数规划、联合 MILP 目标规划和后悔值插入局部搜索四类方法。
   \item 在 P3 中把任务级计划展开为 $0.1$ 秒粒度轨迹，检测并修复 AMR footprint 冲突和节点容量冲突。
   \item 在 P4 中处理通道封锁、AMR 延误和新增任务，形成动态滚动重排结果。
@@ -127,15 +127,15 @@ python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \begin{table}[H]
 \centering
 \scriptsize
-\begin{tabular}{p{0.10\linewidth}p{0.10\linewidth}p{0.18\linewidth}p{0.35\linewidth}p{0.15\linewidth}}
+\begin{tabular}{p{0.09\linewidth}p{0.09\linewidth}p{0.17\linewidth}p{0.34\linewidth}p{0.14\linewidth}}
 \toprule
 负责人 & 工作包 & 主题 & 主要任务 & 交付内容 \\
 \midrule
-李彦霖 & P0/P1 & 场景与路径生成 & 构造二维仓库平面图，建立障碍物与关键节点数据；比较 A*、VG、AVG、DAVG，并形成 mixed 多候选路径接口 & 场景图、路径库、轨迹样本 \\
-朱熠正 & P2 & 任务分配与排序 & 决定任务指派、AMR 内部任务顺序、空驶/载货路径选择，并校验时间窗与电量 & 任务分配表、方法对比 \\
-江亚楠 & P3 & 时空冲突修复 & 将任务级计划展开为轨迹级计划，检测 footprint 冲突和节点容量冲突，并通过等待、换路、换序修复 & 修复后时间表、冲突日志 \\
-倪振昊 & P4 & 动态滚动重排 & 处理通道封锁、AMR 延误和新增任务，冻结历史任务并重排未来任务池 & 动态重排表、可视化 \\
-张铭浥 & P5 & 灵敏度分析 & 沿用 P1--P4 的调度链路和评价口径，形成基线校验、边际分析、容量边界、瓶颈簇验证和全局灵敏度筛选 & 灵敏度结果表、灵敏度图表、管理建议 \\
+\input{p1/module3/work_package_row}\\
+\input{p2/module3/work_package_row}\\
+\input{p3/module3/work_package_row}\\
+\input{p4/module3/work_package_row}\\
+\input{p5/module3/work_package_row}\\
 \bottomrule
 \end{tabular}
 \caption{五个工作包与小组分工}
@@ -163,12 +163,11 @@ python .\src\p4_dynamic_reschedule\plot_p4_results.py
 \toprule
 成果点 & 关键结果 & 含义 \\
 \midrule
-P1 多候选路径库 & mixed 平均每个 OD 有 1.77 条候选，最多 4 条 & 调度层不再被单一路径源绑定，可在多路径中择优 \\
-P2 联合优化 & m2/m3 将 $C_{\max}$ 从 m0 的 49.015 降至 40.578 & 任务指派与排序联合建模显著改善系统完工时间 \\
-P2 快速启发式 & m3 与 m2 达到相同 F2/F3，但 0.198s 对 116.728s & 启发式在本算例达到精确模型质量，速度提升约 589 倍 \\
-P3 冲突消解 & 初始 21 个时空冲突全部修复为 0 & 证明任务级可行不等于轨迹级可执行，P3 层不可省略 \\
-P4 动态重排 & 轨迹冲突、封锁违规、AMR 延误违规均为 0 & 动态扰动下仍能保持计划可执行性 \\
-P5 灵敏度分析 & 识别 4 台 AMR 服务阈值、14 个任务保守容量边界、C03 主导空间瓶颈，并通过 Morris/Sobol 验证 AMR 数量为主导因素 & 将调度结果转化为扩车、控量和通道改造的决策依据 \\
+\input{p1/module3/core_result_row}\\
+\input{p2/module3/core_result_row}\\
+\input{p3/module3/core_result_row}\\
+\input{p4/module3/core_result_row}\\
+\input{p5/module3/core_result_row}\\
 \bottomrule
 \end{tabular}
 \caption{核心成果概览}
@@ -188,10 +187,22 @@ P5 灵敏度分析 & 识别 4 台 AMR 服务阈值、14 个任务保守容量边
 \input{p5/p5}
 
 \section{实验结果与分析}
+\subsection{P1：路径生成结果}
 \input{p1/experiment}
+\subsection{P2：任务级调度优化结果}
 \input{p2/experiment}
+\subsection{P3：轨迹冲突检测与修复结果}
 \input{p3/experiment}
+\subsection{P4：动态滚动重排结果}
 \input{p4/experiment}
+\subsection{P5：灵敏度分析与管理解释}
+\input{p5/experiment}
+
+\subsection{实验综合结论}
+
+第 9 章的实验结果共同验证了项目从路径生成到运营分析的完整链路。P1 提供多类基础路径源，P2 在任务级完成 AMR 指派、排序和路径选择，并通过 mixed 候选库改善完工时间与综合目标；P3 进一步揭示任务级可行不等于轨迹级可执行，并通过等待修复将剩余冲突降为 0；P4 说明动态封锁、AMR 延误和新增任务到达后，滚动重排仍能维持硬约束可行；P5 则把这些调度结果转化为 AMR 数量、任务负荷和瓶颈通道容量的管理判断。
+
+因此，本文实验部分不仅给出了各模块自身的数值结果，也说明了模块之间的递进关系：路径库决定调度可选空间，任务级优化决定初始效率，轨迹级修复决定实际执行安全，动态重排决定扰动下的鲁棒性，灵敏度分析决定系统扩容和改造的优先级。
 
 \section{结论}
 
@@ -216,8 +227,8 @@ P5 灵敏度分析 & 识别 4 台 AMR 服务阈值、14 个任务保守容量边
 \toprule
 成员 & 工作包 & 分工主题 & 主要贡献 \\
 \midrule
-李彦霖 & P0/P1 & 场景建模与候选路径生成，PPT制作 & 负责仓储二维场景、节点和障碍物数据整理，完成 A*、VG、AVG、DAVG 及 mixed 候选路径库构建，输出路径成本表和轨迹样本。 \\
-朱熠正 & P2 & 任务分配与排序优化，报告框架搭建 & 负责多 AMR 任务指派、车内任务排序、路径选择和时间窗约束建模，比较贪心、两阶段整数规划、联合 MILP 与启发式局部搜索方法。 \\
+李彦霖 & P0/P1 & 场景建模与候选路径生成，PPT制作 & 负责仓储二维场景、节点和障碍物数据整理，完成 A*、VG、AVG、DAVG 四类基础路径源，输出路径成本表和轨迹样本。 \\
+朱熠正 & P2 & 任务分配与排序优化，报告框架搭建 & 负责 mixed 多候选路径库构建、多 AMR 任务指派、车内任务排序、路径选择和时间窗约束建模，比较贪心、两阶段整数规划、联合 MILP 与启发式局部搜索方法。 \\
 江亚楠 & P3 & 时空冲突检测与修复 & 负责将任务级计划展开为二维时空轨迹，检测 AMR footprint 冲突和节点容量冲突，并通过等待、换路和换序策略完成冲突修复。 \\
 倪振昊 & P4 & 动态事件与滚动重排 & 负责通道封锁、AMR 延误和新增任务等动态事件建模，在冻结已执行任务的基础上重排未来任务池，并完成动态重排结果可视化。 \\
 张铭浥 & P5 & 灵敏度分析与管理解释 & 负责基线校验、AMR 数量边际分析、任务容量边界、瓶颈通道容量和 Morris/Sobol 全局灵敏度分析，形成运营管理建议。 \\
