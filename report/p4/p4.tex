@@ -1,60 +1,281 @@
 ﻿\section{P4：动态事件与滚动时域重排}
 
-\subsection{动态事件}
+\subsection{模块定位与输入输出}
 
-P4 读取 P3 的无冲突基准计划以及 \verb|dynamic_events.csv|，处理三类事件：
+P4 位于 P3 之后，是本项目从“静态可执行计划”走向“动态仓储运行”的关键模块。P3 已经把 P2 的任务级计划展开为二维时空轨迹，并通过等待修复将初始轨迹冲突数降为 0；实际仓储系统在执行过程中还会遇到局部通道封锁、某台 AMR 暂时不可用、临时新增任务等扰动。P4 在 P3 给出的无冲突基准轨迹上进行滚动时域局部重优化：保留已经执行的计划，把受动态事件影响的未来任务释放到重排池中，并重新确定 AMR 序列、开始时间和必要等待。
+
+P4 的输入包括：
+
+\begin{itemize}
+  \item \verb|data/processed/p3/schedule_result.csv|：P3 修复后的任务级基准计划；
+  \item \verb|data/processed/p3/trajectory_schedule.csv|：P3 修复后的二维时空轨迹；
+  \item \verb|data/raw/dynamic_events.csv|：动态事件表，包含封锁、延误和新增任务；
+  \item \verb|data/raw/tasks.csv|、\verb|data/raw/amrs.csv|：静态任务与 AMR 初始参数；
+  \item \verb|data/processed/p1/mixed/path_cost.csv| 与 \verb|path_trajectory_samples.csv|：候选路径成本与轨迹采样。
+\end{itemize}
+
+P4 的输出为：
+
+\begin{itemize}
+  \item \verb|reschedule_result.csv|：任务重排结果，记录原 AMR、新 AMR、原开始/完成时间、新开始/完成时间、变更原因和路径编号；
+  \item \verb|dynamic_event_impact.csv|：每个动态事件的影响范围，包括受影响任务和 AMR；
+  \item \verb|reschedule_summary.csv|：动态重排后的可行性与目标函数指标；
+  \item \verb|trajectory_schedule.csv|：P4 最终二维时空轨迹；
+  \item \verb|p4_method_comparison.csv| 与 \verb|p4_weight_sensitivity.csv|：方法对比和目标口径记录；
+  \item \verb|outputs/p4| 下的甘特图、轨迹地图、指标图、方法对比图和动态 GIF。
+\end{itemize}
+
+从系统分工看，P4 的核心价值在于保持计划稳定性的同时恢复动态可行性。它读取 P3 已经消除冲突的基准计划，在事件到达时冻结历史任务，只对尚未固定的未来任务池进行局部插入、局部等待和冲突修复。这样既能保留 P2/P3 已经形成的高质量计划，又能对实际运行中的突发事件做出响应。
+
+\subsection{图形化运行过程}
+
+为了避免 P4 只停留在公式和表格层面，本节先给出本次动态重排的直接可视化结果。图 \ref{fig:p4-model-gantt} 从时间维度展示了 P3 基准计划与 P4 重排计划的差异：P4 没有全局推翻原计划，而是在动态事件之后对局部未来任务进行调整。新增任务 T13 被插入 AMR4 的未来序列，AMR 延误事件导致相关任务在可用时间之后重新衔接，最终所有任务仍形成可执行的时间链。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{p4_gantt_events.png}
+\caption{P4 动态事件后的任务时间轴与重排结果}
+\label{fig:p4-model-gantt}
+\end{figure}
+
+图 \ref{fig:p4-model-trajectory} 从空间维度展示最终二维轨迹。该图的作用不是重复 P1 的路径搜索，而是验证 P4 输出的任务序列在仓库平面上可以转化为连续轨迹，并且能够与 P3 的冲突检测接口衔接。换言之，P4 的解不是单纯的任务表更新，而是已经落到二维地图、候选路径和轨迹采样层面的动态调度方案。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{p4_trajectory_map.png}
+\caption{P4 重排后的二维轨迹分布}
+\label{fig:p4-model-trajectory}
+\end{figure}
+
+图 \ref{fig:p4-model-process} 进一步从动态过程角度展示重排逻辑。四个快照分别对应 P3 基准计划、动态事件触发、新任务插入与局部修复、最终可执行方案。完整 GIF 已保存在 \verb|outputs/p4/p4_dynamic_reschedule.gif|；报告正文采用抽帧图，是为了保证 PDF 编译后仍能静态呈现动态过程。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\linewidth]{p4_dynamic_process_snapshots.png}
+\caption{P4 动态重排过程快照}
+\label{fig:p4-model-process}
+\end{figure}
+
+因此，P4 的“调整”具体体现在三个层级：在任务层，受动态事件影响的任务被释放并重新插入；在时间层，AMR 的可用时间和任务开始时间被重新递推；在空间层，最终方案重新生成二维轨迹并交给 P3 冲突检测逻辑验证。后文的数学模型用于解释这些图背后的决策变量、约束条件和目标函数。
+
+\subsection{动态事件建模}
+
+P4 当前处理三类动态事件，如表 \ref{tab:p4-event-types} 所示。三类事件分别对应空间资源变化、车辆可用性变化和任务集合变化。
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{p{0.20\linewidth}p{0.68\linewidth}}
+\begin{tabular}{p{0.20\linewidth}p{0.28\linewidth}p{0.40\linewidth}}
 \toprule
-事件类型 & 处理方式 \\
+事件类型 & 事件参数 & 处理方式 \\
 \midrule
-\verb|area_block| & 在给定时间窗内封锁矩形区域，检查并修复轨迹进入封锁区的问题 \\
-\verb|amr_delay| & 识别目标 AMR 在延误窗口内尚未完成的任务，释放其后续尾段重新安排 \\
-\verb|new_task| & 在释放时间后插入新任务，评估不同 AMR 和不同插入位置的影响 \\
+\verb|area_block| & 封锁区域 $(x,y,w,h)$ 与时间窗 $[\alpha,\beta]$ & 检查已有轨迹 footprint 是否进入封锁矩形；若影响未来任务，则将相关任务及尾段纳入重排池 \\
+\verb|amr_delay| & 目标 AMR $k$ 与不可用时间窗 $[\alpha,\beta]$ & 识别目标 AMR 上与延误窗口相交或位于其后的任务；释放重叠任务和后续尾段，从延误结束后重新安排 \\
+\verb|new_task| & 新任务编号、取货点、送货点、释放时间与优先级 & 将新任务加入任务集合，在滚动时域内评估不同 AMR 和不同插入位置 \\
 \bottomrule
 \end{tabular}
-\caption{P4 动态事件类型}
+\caption{P4 动态事件类型与处理方式}
+\label{tab:p4-event-types}
 \end{table}
 
-\subsection{滚动重排模型}
+设动态事件集合为 $\mathcal{E}$，事件 $e\in\mathcal{E}$ 的发生时刻为 $t_e$。对于封锁事件，封锁区域记为矩形 $B_m$，时间窗为 $[\alpha_m,\beta_m]$。若某条轨迹采样点 $(x_k(t),y_k(t))$ 满足
+\[
+t\in[\alpha_m,\beta_m],\qquad (x_k(t),y_k(t))\in B_m\oplus \rho,
+\]
+其中 $\rho$ 为 AMR footprint 半径，则该事件与现有轨迹发生空间时间交叠，需要进入影响分析。当前算例中，E01 的封锁区域在 $[16,20]$ 内没有与最终轨迹 footprint 相交，因此影响任务数为 0。
 
-设事件时刻为 $t_e$。P4 不重新打乱所有历史任务，而是把任务划分为固定集合 $J_{fix}$ 和可重排集合 $J_{free}$：
+对于 AMR 延误事件，若 AMR $k$ 的某项任务 $i$ 执行区间 $[S_i,C_i]$ 与延误窗口 $[\alpha,\beta]$ 相交，
+\[
+S_i<\beta,\qquad C_i>\alpha,
+\]
+则该任务不能继续被视为已固定计划。P4 会释放该任务及其同车后续尾段，并把 AMR 的可用时间修正为不早于 $\beta$。这一步是当前实现相对简单后移策略的重要区别：若一项任务在事件发生前已经开始但在延误窗口内尚未完成，P4 不把它强行保留为历史任务，而是重新安排其未来可执行部分，从而避免最终计划仍与延误窗口重叠。
+
+对于新增任务事件，P4 会根据事件释放时间生成动态任务。若事件表未显式给出最晚完成时间，当前实现采用“释放时刻 $+30$ 秒”作为软期限。该软期限并非硬约束，而是进入延期指标和目标函数，用于区分及时插入和过晚插入。
+
+\subsection{滚动时域集合划分}
+
+设全体任务集合为 $J$，AMR 集合为 $K$。在事件时刻 $t_e$，P4 将任务划分为固定集合 $J_{fix}(t_e)$ 和可重排集合 $J_{free}(t_e)$：
 
 \[
-J=J_{fix}\cup J_{free},\quad J_{fix}\cap J_{free}=\varnothing.
+J=J_{fix}(t_e)\cup J_{free}(t_e),\qquad
+J_{fix}(t_e)\cap J_{free}(t_e)=\varnothing.
 \]
 
-已完成或已经进入执行轨迹的任务固定；受封锁、AMR 延误、新任务插入影响的任务及其同车后续尾段进入 $J_{free}$。对 $J_{free}$，P4 重新决定任务插入位置、候选路径和开始时间：
-
+固定集合由两部分构成。第一部分是在 $t_e$ 前已经完成的任务；第二部分是轨迹已经进入执行状态且没有被当前事件直接破坏的任务。其余任务构成未来任务池。对于 AMR 延误事件，还需要从固定集合中移除目标 AMR 上与延误窗口重叠的任务：
 \[
-\sum_{k\in K}x_{ki}=1,\quad \forall i\in J_{free}.
+J_{fix}'(t_e)=J_{fix}(t_e)\setminus
+\{i:\ k_i=k^{delay},\ S_i<\beta,\ C_i>\alpha\}.
+\]
+这一修正保证延误窗口不会被“已经进入轨迹”这一规则错误保护。
+
+P4 在滚动窗口内保留每台 AMR 的状态。对 AMR $k$，状态向量记为
+\[
+\xi_k(t_e)=(a_k,n_k,b_k,r_k),
+\]
+其中 $a_k$ 是最早可用时间，$n_k$ 是当前所在节点，$b_k$ 是剩余电量，$r_k$ 是固定任务数量。若 AMR 受到延误，则
+\[
+a_k\leftarrow \max(a_k,\beta).
+\]
+后续任务的时间递推从 $\xi_k(t_e)$ 出发，而不是从原始初始点出发。这一点体现了滚动时域方法的本质：过去已经执行的计划成为新的初始条件，未来任务在这个新状态上继续优化。
+
+\subsection{混合整数规划抽象}
+
+从运筹学角度看，P4 可以写成一个带动态事件约束的动态多 AMR 取送货调度问题，即动态 PDPTW / 多车辆路径调度问题。若把 P4 完整抽象为混合整数规划，可定义如下变量：
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.25\linewidth}p{0.60\linewidth}}
+\toprule
+变量 & 含义 \\
+\midrule
+$x_{ki}\in\{0,1\}$ & 任务 $i\in J_{free}$ 是否分配给 AMR $k$ \\
+$y_{kij}\in\{0,1\}$ & AMR $k$ 是否在任务 $i$ 后紧接执行任务 $j$ \\
+$z_{kijq}\in\{0,1\}$ & AMR $k$ 从任务 $i$ 的送货点到任务 $j$ 的取货点是否选择候选路径 $q$ \\
+$u_{kiq}\in\{0,1\}$ & AMR $k$ 执行任务 $i$ 的载货路径是否选择候选路径 $q$ \\
+$S_i,C_i\ge0$ & 任务 $i$ 的开始取货服务时间与完成送货时间 \\
+$T_i\ge0,\ L_i\in\{0,1\}$ & 任务延期量与是否延期 \\
+$H_i\in\{0,1\},\ \Delta_i\ge0$ & 任务是否相对 P3 基准被扰动，以及开始时间偏移量 \\
+$C_{\max}\ge0$ & 系统最大完成时间 \\
+\bottomrule
+\end{tabular}
+\caption{P4 动态重排的主要决策变量}
+\label{tab:p4-decision-vars}
+\end{table}
+
+任务唯一分配约束为
+\[
+\sum_{k\in K}x_{ki}=1,\qquad \forall i\in J_{free}.
+\]
+对每台 AMR，未来任务必须形成一条从滚动初始状态出发的线性任务链。令 $0_k$ 表示 AMR $k$ 在事件时刻的虚拟起点，$\bar 0_k$ 表示虚拟终点，则有：
+\[
+\sum_{j\in J_{free}}y_{k,0_k,j}\le 1,\qquad
+\sum_{i\in J_{free}}y_{k,i,\bar 0_k}\le 1,
+\]
+\[
+\sum_{j\in J_{free}\cup\{\bar 0_k\}}y_{kij}=x_{ki},\qquad
+\sum_{i\in J_{free}\cup\{0_k\}}y_{kij}=x_{kj}.
+\]
+必要时可加入 MTZ 顺序变量 $o_{ki}$ 消除子回路：
+\[
+o_{kj}\ge o_{ki}+1-M(1-y_{kij}),\qquad i,j\in J_{free}.
 \]
 
-路径选择仍限制在 P1 mixed 候选路径库中：
-
+路径选择仍严格限制在 P1 mixed 候选路径库中。设 $Q_{ab}$ 为节点 $a$ 到节点 $b$ 的候选路径集合，则
 \[
-\sum_{q\in Q_{D_iP_j}}z_{kijq}=y_{kij},\quad
+\sum_{q\in Q_{D_iP_j}}z_{kijq}=y_{kij},\qquad
 \sum_{q\in Q_{P_iD_i}}u_{kiq}=x_{ki}.
 \]
+如果某一 OD 对不存在可用候选路径，则该方案被记为缺失路径违反，并在字典序目标的硬约束层优先排除。
 
-时间递推与 P2 类似，但 AMR 的可用时间和所在节点由滚动时域开始时的状态决定：
-
+时间递推约束从滚动初始状态出发。首任务约束为
 \[
-S_j\ge a_k+\tau_{n_kP_j}^{q}-M(1-y_{k,0_k,j}),
+S_j\ge a_k+\sum_{q\in Q_{n_kP_j}}\tau_{kq}z_{k,0_k,j,q}
+-M(1-y_{k,0_k,j}),
+\]
+后继任务约束为
+\[
+S_j\ge C_i+\sum_{q\in Q_{D_iP_j}}\tau_{kq}z_{kijq}
+-M(1-y_{kij}),
+\]
+任务自身完成时间为
+\[
+C_i\ge S_i+s_i+\sum_{q\in Q_{P_iD_i}}\tau_{kq}u_{kiq}-M(1-x_{ki}).
+\]
+延期定义为
+\[
+T_i\ge C_i-l_i,\qquad T_i\ge 0,\qquad T_i\le M L_i.
 \]
 
+AMR 延误窗口可以写成互斥约束。若 AMR $k$ 在 $[\alpha,\beta]$ 内不可用，则其未来任务区间不得与该窗口重叠：
 \[
-S_j\ge C_i+\tau_{D_iP_j}^{q}-M(1-y_{kij}).
+C_i\le \alpha+Mh_{ki}\quad \text{or}\quad S_i\ge \beta-M(1-h_{ki}),
 \]
+其中 $h_{ki}\in\{0,1\}$。工程求解时，P4 将该互斥关系落实为 AMR 状态更新和最终轨迹验证：受延误 AMR 的可用时间被推迟到延误结束，最终方案再重新统计 \verb|delayed_amr_violation_count|。
 
-封锁区约束通过轨迹采样检查实现。若某条轨迹在封锁事件时间窗内进入封锁矩形，则对应方案不可接受或需要等待/换路修复。AMR 延误约束要求目标 AMR 在延误窗口内不能安排与事件冲突的执行轨迹。
+封锁区约束与二维轨迹采样相关。设路径 $q$ 在相对时间 $r$ 处的采样位置为 $X_q(r)$，若该采样点与封锁区 $B_m$ 相交，则它的绝对通过时刻必须避开封锁时间窗：
+\[
+departure(q)+r\le \alpha_m+Mh
+\]
+或
+\[
+departure(q)+r\ge \beta_m-M(1-h).
+\]
+类似地，任意两台 AMR 的潜在 footprint 冲突对需要满足时间错开约束。若
+\[
+\|X_q(r)-X_{q'}(r')\|<2\rho+\sigma,
+\]
+则应有
+\[
+departure(k,q)+r+\epsilon\le departure(k',q')+r'+Mh
+\]
+或
+\[
+departure(k',q')+r'+\epsilon\le departure(k,q)+r+M(1-h).
+\]
+完整时空 MILP 会产生大量二元互斥变量，因此工程实现采用“候选调度生成 + 轨迹检测 + 等待修复”的滚动时域启发式过程。
 
-\subsection{P4 目标口径}
+\subsection{字典序目标规划}
 
-P4 以硬约束优先：剩余轨迹冲突、封锁区违规、AMR 延误违规、缺失路径和电量违反必须优先压到 0。在满足硬约束后，再比较延期服务质量、$C_{\max}$、路径成本、负载均衡、总能耗和扰动任务数。
+P4 的评价顺序采用目标规划思想，而不是单一加权和。硬约束层优先于所有经济性指标：
+\[
+F_0=
+N_{conflict}+N_{block}+N_{delay}+N_{missing}+N_{battery}.
+\]
+其中 $N_{conflict}$ 为剩余轨迹冲突数，$N_{block}$ 为封锁区违规数，$N_{delay}$ 为 AMR 延误窗口违规数，$N_{missing}$ 为缺失路径数，$N_{battery}$ 为电量安全阈值违反数。只有 $F_0=0$ 的方案才具有运营意义。
 
-本文以滚动时域重排作为主方案；全局重排和仅等待作为对照策略。滚动方案优先保证动态事件后的可执行性，并在可行域内控制延期和扰动范围。
+在可行方案中，P4 进一步比较服务质量和运行成本。当前实现中的均衡目标可概括为
+\[
+\min \operatorname{lex}
+\left(
+F_0,\ 
+\sum_i T_i,\ 
+\sum_i w_iL_i,\ 
+\sum_i L_i,\ 
+C_{\max},\
+\sum_i H_i,\ 
+F_3
+\right),
+\]
+其中
+\[
+F_2=30\sum_iw_iT_i+20\sum_iT_i+5C_{\max},
+\]
+\[
+F_3=2\cdot empty\_cost+10(L_{\max}-L_{\min})+total\_energy.
+\]
+报告表格中的 $F_2$ 和 $F_3$ 分别对应时间效率综合指标和运营成本综合指标。
+
+此外，P4 还保留两类计划稳定性变量。若任务 $i$ 的 AMR 分配相对 P3 基准发生变化，或开始/完成时间偏移超过容差，则记为扰动任务。开始时间偏移可写为
+\[
+\Delta_i\ge S_i-S_i^0,\qquad
+\Delta_i\ge S_i^0-S_i.
+\]
+稳定性目标不应高于硬约束和服务质量目标：允许少量扰动换取消除违规和降低总延期，但不允许为了减少扰动而保留不可执行方案。
+
+\subsection{求解策略与实现流程}
+
+考虑到完整时空 MILP 的变量规模随候选路径、任务数和时间离散粒度快速增长，P4 采用滚动时域启发式求解。整体流程如下：
+
+\begin{enumerate}
+  \item 读取 P3 基准计划和轨迹，建立任务、AMR、路径和轨迹样本索引。
+  \item 按事件时刻排序处理动态事件，得到当前滚动窗口 $t_e$。
+  \item 根据轨迹和任务时间识别事件影响范围，并划分 $J_{fix}$ 与 $J_{free}$。
+  \item 基于固定任务构造 AMR 当前状态 $\xi_k(t_e)$。
+  \item 对封锁和延误事件，取受影响任务及其同车后续尾段作为重排池；对新增任务，枚举其在未来任务序列中的插入位置。
+  \item 通过后悔值插入、局部顺序保留和新任务短名单修复构造候选序列。
+  \item 对候选序列重新选择 P1 mixed 路径并生成未来轨迹。
+  \item 调用 P3 的轨迹冲突检测函数；若存在冲突，则对未来任务增加等待，直到冲突数为 0 或达到迭代上限。
+  \item 合并固定轨迹和未来轨迹，输出新计划，并进入下一个事件。
+\end{enumerate}
+
+其中，新任务插入是当前 P4 的关键。P4 采用“冲突感知短名单 + 有界修复后比较”：首先枚举新任务在每台 AMR 未来序列中的所有插入位置，生成临时轨迹并统计潜在冲突；随后保留全局前若干候选、每台 AMR 的代表候选和每台 AMR 的队首插入候选；最后对短名单做有限轮冲突修复，并按修复后的字典序目标选择方案。该策略把搜索集中在最有价值的候选位置上，同时保留初始冲突较多但修复后目标更优的方案。
+
+该求解策略是面向动态仓储运行的可解释滚动优化启发式。它的优势在于：第一，事件到来后只重排未来任务，保持历史计划稳定；第二，所有路径仍来自 P1 mixed 候选库，接口清晰；第三，最终轨迹重新经过 P3 冲突检测和动态事件违规检查，能够给出可行性证据；第四，候选修复被限制在短名单和有限迭代内，使运行时间在本算例中保持在几十秒以内。
+
+\subsection{与 P2/P3 的区别}
+
+P4 与 P2/P3 的关系容易混淆，因此需要明确其职责边界。P2 解决的是静态任务分配与排序问题，核心决策是“任务由谁做、按什么顺序做、走哪条候选路径”。P3 不改变 P2 的任务归属，重点检查二维时空轨迹是否冲突，并通过等待、换路和局部换序修复执行层冲突。P4 则发生在动态事件到来之后：它不重做所有历史任务，而是把动态事件后的未来任务视为一个滚动窗口，在该窗口内重新安排受影响任务和新增任务。
+
+因此，P4 的评价不能只看任务表是否更新，还必须同时看三类硬约束是否清零：轨迹冲突、封锁区违规和 AMR 延误违规。只有当这三类指标都为 0 时，P4 的延期、扰动任务数和 $C_{\max}$ 才有比较意义。这也是本文在实验分析中把可行性指标放在服务质量指标之前的原因。
 
