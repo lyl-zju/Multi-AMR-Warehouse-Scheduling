@@ -1,10 +1,9 @@
-\section{P5：全局灵敏度与系统容量实验}
-本部分围绕多 AMR 仓库调度系统的性能退化原因开展系统容量实验与全局灵敏度分析。实验选取 AMR 数量、任务负荷与瓶颈通道容量三个可解释参数，判断系统性能恶化究竟来自全局资源不足、任务需求过载还是局部通道拥堵。
+\section{P5：系统容量与灵敏度分析模型}
+本部分围绕多 AMR 仓库调度系统的性能退化原因建立系统容量与灵敏度分析模型。实验结果统一放在第 9 章；本章只保留评价口径、参数定义、离散边际分析、瓶颈容量影子价值以及 Morris/Sobol 全局灵敏度的数学定义。
 
+\subsection{P5 方法框架与参数定义}
 \input{p5/sections/intro}
-\input{p5/sections/baseline}
-\input{p5/sections/amr_marginal}
-\input{p5/sections/task_capacity}
-\input{p5/sections/bottleneck_cluster}
-\input{p5/sections/global_sensitivity}
-\input{p5/experiment}
+\input{p5/sections/amr_marginal_method}
+\input{p5/sections/task_capacity_method}
+\input{p5/sections/bottleneck_cluster_method}
+\input{p5/sections/global_sensitivity_method}

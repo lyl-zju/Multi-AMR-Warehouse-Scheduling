@@ -1,0 +1,35 @@
+\subsection{AMR 数量的资源边际分析模型}
+
+AMR 数量是仓库调度系统中最直接的\textbf{资源变量}。车辆不足时，任务会在少数 AMR 上串行排队，\textbf{时间窗延期和最大完工时间同时上升}；车辆过多时，继续扩车只能带来\textbf{有限吞吐裕度}。因此，本部分固定仓库布局、12 个任务、时间窗、电量规则和 mixed 路径代价，只改变整数资源参数 $m$，分析 $m$ 的\textbf{边际响应}。
+
+AMR 数量 $m$ 为\textbf{离散整数资源}，局部灵敏度采用\textbf{枚举重优化后的前向有限差分}。对任一随 $m$ 变化的性能指标 $G(m)$，定义
+\begin{equation}
+\Delta^+G(m)=G(m)-G(m+1)\qquad \text{一台 AMR 增量响应}.
+\end{equation}
+我们以\textbf{运筹调配问题}中最关心的\textbf{最大完工时间}为核心性能指标，并定义
+\begin{equation}
+\begin{aligned}
+\Delta^+\Cmax(m) &= \Cmax(m)-\Cmax(m+1),\\
+r_m &= \frac{\Delta^+\Cmax(m)}{\Cmax(m)},\\
+\varepsilon_m &= \frac{\Delta^+\Cmax(m)/\Cmax(m)}{1/m}=m\,r_m.
+\end{aligned}
+\end{equation}
+$\Delta^+\Cmax(m)$ 表示完工时间下降量，$r_m$ 表示相对下降比例，$\varepsilon_m$ 表示\textbf{离散弹性近似}。
+
+为判断上述改善是否真正消除\textbf{服务风险}，结合 AMR 调运的项目具体情况构造\textbf{服务状态指标}。设 $\mathcal{J}$ 为任务集合，$\mathcal{K}_m$ 为 AMR 集合，$|\mathcal{K}_m|=m$；参数 $\theta_0$ 表示固定的布局、路径代价、时间窗、服务时间、初始位置和电量规则。给定 $m$ 后，调用主求解流程并记返回方案为 $\hat{\pi}_m$。评价器对 $\hat{\pi}_m$ 进行\textbf{时间和电量仿真}，得到任务完成时刻 $C_j(m)$、任务最晚完成时刻 $\ell_j$、路径缺失次数和电量违规次数。定义
+\begin{align}
+D_j(m) &= \max\{0,C_j(m)-\ell_j\}, \notag\\
+\Cmax(m) &= \max_{j\in\mathcal{J}}C_j(m).
+\intertext{$D_j(m)$ 表示任务延期，$\Cmax(m)$ 表示最大完工时间。据此定义服务可行性指标}
+S(m) &= \sum_{j\in\mathcal{J}}D_j(m), \notag\\
+L(m) &= \sum_{j\in\mathcal{J}}\indicator\{D_j(m)>0\}, \notag\\
+M(m) &= N_{\mathrm{trans}}^{\mathrm{miss}}(m)+N_{\mathrm{load}}^{\mathrm{miss}}(m), \notag\\
+E(m) &= N_{\mathrm{energy}}^{\mathrm{viol}}(m), \notag\\
+Q(m) &= \indicator\{S(m)=0,\ L(m)=0,\ M(m)=0,\ E(m)=0\}.
+\end{align}
+$S(m)$ 表示总延期，$L(m)$ 表示延期任务数，$M(m)$ 表示路径不可达次数，$E(m)$ 表示电量违规次数，$Q(m)$ 表示\textbf{服务可行性}。
+为辅助判断\textbf{资源是否紧张}，记 $A_{\mathrm{act}}(m)$ 为空驶、载货行驶和服务时间之和，并定义
+\begin{equation}
+\rho(m)=\frac{A_{\mathrm{act}}(m)}{m\,\Cmax(m)}.
+\end{equation}
+$\rho(m)$ 表示\textbf{平均资源利用率}。

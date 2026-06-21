@@ -1,0 +1,213 @@
+\subsubsection{基线校验与占用热点结果}
+
+进行关键资源灵敏度分析之前，我们首先固定当前实例的\textbf{真实调度结果}。基线工况包含当前仓库布局、12 个静态任务、4 台 AMR，以及已注入的动态事件。系统依次完成\textbf{静态排程、冲突修复和动态重排}；同时将轨迹点投影到网格单元，统计\textbf{轨迹占用热点}。关键结果汇总见表~\ref{tab:baseline-summary} 和表~\ref{tab:baseline-hotspots}。
+
+\begin{center}
+\begin{minipage}[t]{0.53\linewidth}
+\centering
+\small
+\captionof{table}{基线工况关键结果}
+\label{tab:baseline-summary}
+\renewcommand{\arraystretch}{1.76}
+\begin{tabular}{@{}lll@{}}
+\toprule
+模块 & 任务 / AMR & $\Cmax$ \\
+\midrule
+静态排程 & 12 / 4 & 40.840111 \\
+冲突修复 & 12 / 4 & 46.596970 \\
+动态重排 & 13 / 4 & 61.918082 \\
+\bottomrule
+\end{tabular}
+\renewcommand{\arraystretch}{1}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.39\linewidth}
+\centering
+\small
+\captionof{table}{基线轨迹占用热点}
+\label{tab:baseline-hotspots}
+\begin{tabular}{@{}ccc@{}}
+\toprule
+热点 & 网格坐标 & 占用次数 \\
+\midrule
+1 & $(6,4)$ & 166 \\
+2 & $(5,4)$ & 152 \\
+3 & $(9,1)$ & 95 \\
+4 & $(9,2)$ & 84 \\
+5 & $(8,2)$ & 77 \\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{center}
+
+由表~\ref{tab:baseline-summary} 可见，\textbf{冲突修复使 $\Cmax$ 从 40.840111 上升到 46.596970，增幅约 14.1\%}；\textbf{动态重排后 $\Cmax$ 进一步上升到 61.918082，较冲突修复结果增加约 32.9\%}。与此同时，总延期、剩余冲突和硬违规均为 0，说明\textbf{基线排程具有可行性}；变更任务 4 个、新增任务 1 个，则说明\textbf{动态事件已经带来可观的计划扰动}。表~\ref{tab:baseline-hotspots} 显示，$(6,4)$ 与 $(5,4)$ 两个相邻网格占用最高，分别达到 166 次和 152 次；$(9,1)$、$(9,2)$ 和 $(8,2)$ 也形成\textbf{连续的高占用区域}。
+
+为解释完工时间上升背后的空间原因，我将轨迹点投影到\textbf{网格单元} $\Omega_{ab}$，并统计\textbf{占用次数与归一化占用密度}：
+\begin{equation}
+H_{ab}=\sum_{k=1}^{N}\indicator\{(x_k,y_k)\in\Omega_{ab}\},
+\qquad
+\rho_{ab}=\frac{H_{ab}}{\sum_{p,q}H_{pq}}.
+\end{equation}
+对应空间分布见图~\ref{fig:baseline-dashboard}。图~\ref{fig:baseline-dashboard} 集中可视化展现了前文的\textbf{运筹策略与资源占有情况}.
+
+\begin{center}
+\includegraphics[width=0.94\linewidth]{baseline_dashboard}
+\captionof{figure}{基线工况下的重排甘特图与轨迹占用热图}
+\label{fig:baseline-dashboard}
+\end{center}
+
+综合表~\ref{tab:baseline-summary}、表~\ref{tab:baseline-hotspots} 和图~\ref{fig:baseline-dashboard}，\textbf{当前系统已经满足可行性校验，同时表现出局部拥堵与动态扰动}。灵敏度分析因此围绕\textbf{AMR 资源冗余、任务负荷边界和瓶颈通道容量}展开。
+
+\subsubsection{AMR 数量资源边际结果}
+
+图~\ref{fig:amr-marginal} 同时展示\textbf{资源前沿、有限差分、服务风险和车辆负载}。\textbf{4 台 AMR 是服务风险消除点}；\textbf{5 台以后 $\Cmax$ 仍下降，但边际改善明显减弱}。
+\begin{center}
+\includegraphics[width=0.95\linewidth]{amr_marginal}
+\captionof{figure}{固定任务集下 AMR 数量的资源前沿、前向有限差分、服务风险与车辆负载}
+\label{fig:amr-marginal}
+\end{center}
+
+\begin{center}
+\footnotesize
+\begin{minipage}[t]{0.50\linewidth}
+\centering
+\captionof{table}{AMR 资源前沿}
+\label{tab:amr-resource-frontier}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$m$ & $\Cmax$ & $S$ & $L$ & $\rho$ & $Q$ \\
+\midrule
+2 & 84.606 & 124.593 & 4 & 97.08\% & 否 \\
+3 & 59.802 & 11.802 & 1 & 91.69\% & 否 \\
+4 & 40.840 & 0.000 & 0 & 95.94\% & 是 \\
+5 & 34.189 & 0.000 & 0 & 92.22\% & 是 \\
+6 & 29.130 & 0.000 & 0 & 90.12\% & 是 \\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\linewidth}
+\centering
+\captionof{table}{增加一台 AMR 的前向有限差分}
+\label{tab:amr-finite-diff}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}ccccc@{}}
+\toprule
+区间 & $\Delta^+\Cmax$ & $r_m$ & $\varepsilon_m$ & 跨越 \\
+\midrule
+2--3 & 24.804 & 29.32\% & 0.586 & 否 \\
+3--4 & 18.962 & 31.71\% & 0.951 & 是 \\
+4--5 & 6.651 & 16.29\% & 0.651 & 否 \\
+5--6 & 5.059 & 14.80\% & 0.740 & 否 \\
+\bottomrule
+\end{tabular*}
+\end{minipage}
+\end{center}
+
+表~\ref{tab:amr-resource-frontier} 与表~\ref{tab:amr-finite-diff} 表明，\textbf{2 台和 3 台 AMR 均存在服务风险}，\textbf{$m=4$ 时总延期、延期任务数、路径缺失和电量违规同时降为 0，首次达到可行服务状态}。前向有限差分显示，\textbf{3 到 4 台是关键敏感区间}，虽然 $\Delta^+\Cmax$ 小于 2 到 3 台，但完成\textbf{服务阈值跨越}，且\textbf{离散弹性达到 0.951}。\textbf{4 台以后继续扩车只降低 $\Cmax$，不再改变服务可行性，因此 4 台 AMR 是当前算例的服务阈值，5 台可作为高裕度工况参考。}
+
+\subsubsection{任务负荷容量边界结果}
+
+\begin{center}
+\small
+\captionof{table}{任务负荷容量边界附近的离散扫描结果}
+\label{tab:task-capacity-frontier}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$n$ & $\min \Cmax$ & $\mathrm{median}\ \Cmax$ & $\max \Cmax$ & $\Delta_n\Cmax$ & all-seeds \\
+\midrule
+12 & 40.840 & 40.840 & 40.840 & 4.884 & 是 \\
+13 & 44.927 & 45.724 & 45.724 & 4.202 & 是 \\
+14 & 49.840 & 49.926 & 50.465 & 6.142 & 是 \\
+15 & 51.537 & 56.068 & 58.345 & 3.654 & 否 \\
+16 & 55.512 & 59.723 & 66.559 & 6.959 & 否 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.74\linewidth]{task_capacity}
+\captionof{figure}{固定 4 台 AMR 下的任务负荷容量边界}
+\label{fig:task-capacity}
+\end{center}
+
+图~\ref{fig:task-capacity} 给出 $n\mapsto \Cmax(n)$ 的\textbf{容量边界曲线}。蓝线为多种子中位数，浅色带表示 min--max 范围，红色虚线为统一业务时域 $H$。由表~\ref{tab:task-capacity-frontier} 可见，\textbf{$n=14$ 时三个种子均满足 $C_{\max,s}(n)\le 55$ 且无硬约束违规}；\textbf{$n=15$ 时中位数已经达到 56.068222，且只有 1 个种子仍满足时域约束}。因此，在固定 4 台 AMR 和 mixed 路径库下，本轮离散重优化得到的\textbf{保守容量边界}为
+\begin{equation}
+n_{\mathrm{capacity}}=14,\qquad n_{\mathrm{cross}}=15.
+\end{equation}
+需要注意的是，\textbf{$\Delta_n\Cmax$ 是每个负荷水平重新优化后的离散响应}；个别高负荷点可能因任务组合和整数重优化结果变化出现\textbf{非单调有限差分}，因此不对曲线做单调化处理，也不使用插值曲线替代离散求解结果。
+
+\subsubsection{瓶颈空间簇容量放松结果}
+
+本工况中，轨迹、冲突、等待和延期信号共覆盖 56 个网格，其中 15 个网格的综合筛选分数为正。采用正分数网格的 70\% 分位数作为阈值，得到 $s(c)\geq 1.731118$ 的高压力网格；再要求该网格必须含有冲突事件或等待信号，最终保留 5 个候选网格。由于这 5 个网格之间不相邻，连通合并后仍为 5 个单元簇，因此它们是由数据自动筛出的候选集，而不是人工指定的固定数量。\textbf{为避免漏检，又对路径库中其余 15 个未纳入网格执行同样的容量 $+1$ 重优化，结果它们的 $\Delta \Cmax$ 均为 0，说明当前主瓶颈没有被前面的筛选遗漏到更强的同类网格。}
+
+\begin{center}
+\small
+\captionof{table}{候选瓶颈簇的容量放松有限差分}
+\label{tab:bottleneck-capacity-test}
+\begin{tabular}{@{}cccccccc@{}}
+\toprule
+簇 & 位置 & 最近设施 & 筛选分数 & $\Cmax^{\mathrm{base}}$ & $\Cmax^{+1}$ & $\Delta\Cmax$ & $\Delta W$ \\
+\midrule
+C03 & $(9,2)$ & RACK\_E / Z\_SORT & 1.776 & 83.870 & 69.142 & 14.728 & 49.0 \\
+C02 & $(6,4)$ & RACK\_D / Z\_SORT & 3.220 & 83.870 & 80.950 & 2.920 & 32.0 \\
+C04 & $(11,4)$ & WALL\_RIGHT / Z\_OUT & 2.416 & 83.870 & 83.870 & 0.000 & 0.0 \\
+C05 & $(12,3)$ & WALL\_RIGHT / Z\_OUT & 2.290 & 83.870 & 83.870 & 0.000 & 0.0 \\
+C01 & $(6,2)$ & RACK\_C / Z\_SORT & 2.319 & 83.870 & 83.870 & 0.000 & 0.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.95\linewidth]{stage4_bottleneck_cluster}
+\captionof{figure}{瓶颈空间簇容量松弛验证位置}
+\label{fig:stage4-bottleneck-cluster}
+\end{center}
+
+表~\ref{tab:bottleneck-capacity-test} 给出了筛选候选的容量放松结果，图~\ref{fig:stage4-bottleneck-cluster} 展示所有验证位置；路径库补集的 15 个未纳入网格在附加验证中全部得到 $\Delta \Cmax=0$。基线 P3 修复后 $\Cmax=83.869555$，冲突修复等待为 93.0 秒，目标函数为 17263.345675。对 5 个候选空间簇逐一执行容量 $+1$ 并重跑 P3 后，\textbf{C03 的边际改善最大：$\Cmax$ 降至 69.141718，减少 14.727837 秒；冲突等待从 93.0 秒降至 44.0 秒，减少 49.0 秒；目标函数下降 10364.363885。}C02 排名第二，仍有 2.919667 秒的 $\Delta \Cmax$ 和 32.0 秒的等待改善。C04、C05 与 C01 的 $\Delta \Cmax$ 均为 0，其中 C01 甚至出现目标函数轻微上升，说明其容量放松并未缓解当前主要拥堵结构。
+
+因此，\textbf{C03 是当前边界工况下的主导空间瓶颈，位置在 $(9,2)$，对应 RACK\_E 与 Z\_SORT 的汇入带。}这个结论来自容量松弛后的离散影子价值：它同时在 $\Cmax$、总等待和目标函数三个层面都给出最大的边际收益。\textbf{工程上，优先改造 C03 所在通道最有意义，具体措施包括扩大 RACK\_E 附近通道会车能力、在分拣区前设置短缓冲区、限制对向穿越，或将进入 Z\_SORT 的任务释放节奏做错峰控制。}C02 可作为次级改造点继续评估，而 C04、C05 与 C01 更适合保留监测而不是立即扩容。
+
+\subsubsection{Morris 与 Sobol 全局灵敏度结果}
+
+\begin{center}
+\small
+\captionof{table}{Morris 全局筛选结果}
+\label{tab:stage5-morris}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+因素 & $\mu^\star$ & $\sigma$ & $\mu^\star$ 置信宽度 \\
+\midrule
+$m$ & 30.711 & 10.943 & 6.490 \\
+$n$ & 12.318 & 11.580 & 5.310 \\
+$q_C$ & 1.875 & 3.841 & 1.971 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+表~\ref{tab:stage5-morris} 显示，$m$ 的 $\mu^\star=30.711$ 秒，明显高于 $n$ 和 $q_C$；$n$ 的 $\sigma=11.580$ 秒接近 $m$，说明任务量效应强烈依赖车队规模和拥堵背景。\textbf{从 Morris 筛选看，增加 AMR 数量是当前工况下最直接的资源配置杠杆，任务量是次级压力源，单独提高 C03 局部容量的全局收益有限。}
+
+\begin{center}
+\small
+\captionof{table}{Sobol 方差分解结果}
+\label{tab:stage5-sobol}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+因素 & $S_1$ & $S_1$ 置信宽度 & $S_T$ & $S_T$ 置信宽度 \\
+\midrule
+$m$ & 0.752 & 0.343 & 0.880 & 0.362 \\
+$n$ & 0.276 & 0.215 & 0.350 & 0.132 \\
+$q_C$ & -0.031 & 0.088 & 0.031 & 0.031 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{center}
+\includegraphics[width=0.6\linewidth]{stage5_sobol}
+\captionof{figure}{Sobol 一阶效应与总效应}
+\label{fig:stage5-sobol}
+\end{center}
+
+表~\ref{tab:stage5-sobol} 和图~\ref{fig:stage5-sobol} 显示，$m$ 的 $S_T=0.880$，显著高于 $n$ 的 0.350 和 $q_C$ 的 0.031。$q_C$ 的 $S_1$ 轻微为负属于有限样本 Monte Carlo 估计误差，不代表容量放松有负贡献；结合其总效应接近 0，可认为 C03 容量在本全局参数域内解释力很弱。\textbf{Sobol 验证了 Morris 排序，$m$ 是主导因素，$n$ 是次级因素，$q_C$ 只适合做局部瓶颈修复。}
+
+\subsubsection{P5 实验结论}
+
+综合来看，P5 给出了三条运营解释。若目标是消除服务风险，应首先保证 AMR 数量达到当前任务集所需的阈值；若目标是控制波次规模，应把 14 个任务作为当前配置下的保守容量参考；若目标是改善局部拥堵，则应优先评估 C03 汇入区域的通行能力。由此，P5 将系统容量实验和全局灵敏度结果转化为扩车、控量和局部通道改造的优先级建议。

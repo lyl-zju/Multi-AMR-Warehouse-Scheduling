@@ -1,0 +1,71 @@
+\subsubsection{算法对比实验设计}
+
+为支撑报告中的 P1 横向比较，本文新增脚本 \verb|run_p1_experiments.py|，位于 \verb|src/p1_candidate_paths/|。该脚本只读取已有的 P1 处理结果，不覆盖任何原始结果；所有新增实验产物写入 \verb|outputs/p1_experiments/|。输出包括算法总体指标表、代表性 OD 对路径对比图和对应 CSV。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.18\linewidth}rrrrr}
+\toprule
+算法 & 路径数 & 平均距离 & 平均转角数 & 平均动态代价 & 平均总成本 \\
+\midrule
+Grid A* & 272 & 6.463 & 9.206 & 0.000 & 6.463 \\
+VG & 272 & 6.054 & 1.846 & 0.000 & 6.054 \\
+AVG & 272 & 6.071 & 1.765 & 0.000 & 6.695 \\
+DAVG & 272 & 6.071 & 1.765 & 0.000 & 6.695 \\
+\bottomrule
+\end{tabular}
+\caption{P1 四类单算法总体指标对比}
+\label{tab:p1-algorithm-summary}
+\end{table}
+
+表 \ref{tab:p1-algorithm-summary} 体现了不同算法的主要差异。Grid A* 的平均距离为 6.463，高于 VG 的 6.054；平均转角数为 9.206，也显著高于 VG 的 1.846。这说明栅格离散会引入阶梯状路径和更多方向变化。VG 在连续可视图上寻找几何短路，所以距离和折点都更少。AVG 的平均距离略高于 VG，但平均转角数进一步降低到 1.765，说明转角惩罚会让搜索在少量距离损失下获得更平滑的路径。DAVG 在当前静态算例中与 AVG 一致，因为动态风险代价没有被触发。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.88\linewidth]{p1_algorithm_metric_summary.png}
+\caption{P1 四类算法在距离、转角、动态代价和总成本上的总体对比}
+\label{fig:p1-algorithm-metrics}
+\end{figure}
+
+图 \ref{fig:p1-algorithm-metrics} 从可视化角度进一步说明：如果只看距离，VG 是当前算例中最短的单路径源；如果考虑转向平滑性，AVG/DAVG 比 VG 稍微牺牲距离，但用转角惩罚表达执行偏好；如果考虑动态风险，当前样本中四类路径动态代价均为 0，说明风险区域并未影响这些静态 OD 最优路径。这为比较不同路径源的调度影响提供了基础。
+
+\subsubsection{代表性 OD 对路径形态比较}
+
+为了更直观地解释四类算法的路径差异，本文选取 \verb|IN1 -> P5| 作为路径图案例。该 OD 对需要从入库区进入货架中部，路径需要绕开货架 A/F，能够展示栅格折线、可视图短路和转角代价评价之间的区别。另选 \verb|P8 -> OUT2| 作为表格补充，用于说明接近直线通行时栅格算法仍可能产生额外转向。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.86\linewidth]{p1_path_comparison_IN1_P5.png}
+\caption{\texttt{IN1 -> P5} 的四类 P1 路径形态对比}
+\label{fig:p1-compare-in1-p5}
+\end{figure}
+
+图 \ref{fig:p1-compare-in1-p5} 中，Grid A* 路径沿栅格方向逐步上行并右移，距离为 6.843，转角数为 5；VG 直接利用可视边绕过货架，距离降至 6.492，转角数为 2。AVG 与 DAVG 在这个 OD 上选择了和 VG 相同的几何折线，但由于 AVG/DAVG 的 \verb|total_cost| 中包含转角惩罚，其总成本为 6.729，高于 VG 的 6.492。这说明同一条几何路径在不同算法的评价口径下可能有不同总成本，P2 在读入路径源时需要明确使用的是 \verb|travel_time| 还是 \verb|total_cost|。
+
+作为补充，\verb|P8 -> OUT2| 在连续空间中几乎可以直线到达，因此 VG、AVG、DAVG 均输出距离 3.583、转角数 0 的直线路径。Grid A* 由于受到 $0.1$m 栅格和 8 邻域运动方向限制，输出距离 3.863、转角数 18 的折线。这个案例说明，即使起终点之间没有复杂绕障碍需求，栅格路径也可能因为离散化而产生额外转向；连续可视图算法可以显著改善路径几何质量。
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{p{0.15\linewidth}p{0.13\linewidth}rrrr}
+\toprule
+OD 对 & 算法 & 距离 & 转角数 & 动态代价 & 总成本 \\
+\midrule
+\verb|IN1->P5| & Grid A* & 6.843 & 5 & 0.000 & 6.843 \\
+\verb|IN1->P5| & VG & 6.492 & 2 & 0.000 & 6.492 \\
+\verb|IN1->P5| & AVG & 6.492 & 2 & 0.000 & 6.729 \\
+\verb|IN1->P5| & DAVG & 6.492 & 2 & 0.000 & 6.729 \\
+\verb|P8->OUT2| & Grid A* & 3.863 & 18 & 0.000 & 3.863 \\
+\verb|P8->OUT2| & VG & 3.583 & 0 & 0.000 & 3.583 \\
+\verb|P8->OUT2| & AVG & 3.583 & 0 & 0.000 & 3.583 \\
+\verb|P8->OUT2| & DAVG & 3.583 & 0 & 0.000 & 3.583 \\
+\bottomrule
+\end{tabular}
+\caption{代表性 OD 对的路径指标对比}
+\label{tab:p1-pair-metrics}
+\end{table}
+
+表 \ref{tab:p1-pair-metrics} 与图 \ref{fig:p1-compare-in1-p5} 相互印证：A* 的优势在于稳健可达和离散化处理，VG 的优势在于几何距离，AVG/DAVG 的优势在于用附加代价表达转向和风险偏好。对于上层调度而言，这些算法没有绝对优劣，关键是它们提供了不同路径风格。
+
+\input{p1/experiment}

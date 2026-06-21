@@ -1,0 +1,27 @@
+\subsection{任务负荷与系统容量边界模型}
+
+在 AMR 数量固定后，进一步需要回答的是当前系统在一个业务时域内最多能稳定处理多少任务。这里不复用 P2 已有的任务密度灵敏度实验结果，而是在 P5 中单独构造\textbf{嵌套任务池并逐点重优化}；P2 仅作为单个工况的\textbf{任务分配与排序求解器}被调用。这样可以保证任务负荷参数 $n$ 的变化具有\textbf{严格可比性}，并且\textbf{容量边界来自同一套业务判定规则}。
+
+本阶段固定仓库布局、mixed 路径库和 4 台 AMR。业务时域取
+\begin{equation}
+H=55\text{ s},
+\end{equation}
+其来源是基线静态任务批次的最大最晚完成时刻，表示当前任务波次的\textbf{服务承诺时域}。对每个随机种子 $s$，P5 先生成最大任务池 $T_s(N)$，然后只取前缀形成不同规模的任务集合：
+\begin{equation}
+T_s(n)=\{j_1,\ldots,j_n\},\qquad T_s(n)\subset T_s(n+1).
+\end{equation}
+因此，\textbf{$n$ 增大时只是在同一个任务池上增加新任务，而不是更换另一批任务样本}。对每个 $(s,n)$，调用同一 P2 静态优化入口得到完工时间 $C_{\max,s}(n)$、总延期、路径缺失和电量违规。\textbf{容量判定采用保守的 all-seeds 规则}：
+\begin{equation}
+I_s(n)=\indicator\{C_{\max,s}(n)\le H,\ \text{feasible}_s(n)=1\},
+\qquad
+n_{\mathrm{capacity}}=\max\{n:\prod_s I_s(n)=1\}.
+\end{equation}
+
+为刻画任务负荷的局部响应，采用\textbf{离散重优化后的前向有限差分}。令
+\(\widetilde{C}_{\max}(n)\) 表示多种子中位数完工时间，并定义
+\begin{equation}
+\Delta_n \Cmax=\widetilde{C}_{\max}(n+1)-\widetilde{C}_{\max}(n),
+\qquad
+e_n=\frac{n}{\widetilde{C}_{\max}(n)}\Delta_n \Cmax.
+\end{equation}
+$\Delta_n\Cmax$ 表示增加一个任务带来的\textbf{边际完工时间增量}，$e_n$ 是归一化后的\textbf{任务负荷弹性}。该指标来自\textbf{离散工况重优化结果}，不使用插值或平滑曲线替代实际求解点。

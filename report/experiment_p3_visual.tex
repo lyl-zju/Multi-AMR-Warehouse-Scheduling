@@ -1,0 +1,20 @@
+\subsubsection{可视化结果与轨迹解释}
+
+为了更直观地说明 P3 的作用，本文从 \verb|outputs/p3| 中的动画结果截取了原始轨迹和最终修复轨迹在同一时刻的画面，如图 \ref{fig:p3-original-vs-repaired-snapshot} 所示。左图对应 P2 原始计划直接展开后的运行状态，右图对应 P3 选中方案 \verb|wait_reroute_resequence| 修复后的运行状态。两张图取自同一近似时刻，便于比较 P3 修复前后的空间占用差异。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.98\linewidth]{p3_original_vs_repaired_snapshot.png}
+\caption{P3 原始轨迹与修复后轨迹快照对比}
+\label{fig:p3-original-vs-repaired-snapshot}
+\end{figure}
+
+图 \ref{fig:p3-original-vs-repaired-snapshot} 左侧可以看到，在原始 P2 轨迹中，AMR2 与 AMR4 在货架区中上部附近距离过近，触发 C001 空间冲突。该冲突不是任务表层面能够直接发现的问题，因为 P2 只知道两台 AMR 的任务顺序、开始时间和路径编号，并没有逐时刻比较二维 footprint。右侧修复后，同一时刻 AMR2 与 AMR4 的空间位置已经拉开，图中不再标记冲突。这说明 P3 的等待修复并不是简单修改一个汇总指标，而是改变了 AMR 在具体时刻、具体位置上的空间占用。
+
+从轨迹形态看，P3 修复后并没有让 AMR 离开原路径绕行，也没有跨 AMR 重分配任务，而是通过路径中途停车让行改变相对到达时刻。当前最终轨迹表中出现 163 条 \verb|mid_path_wait_loaded| 记录，正是这种中途等待的轨迹化表达。换句话说，P3 把“让一台车等一下”落实为可检查的时空点：等待发生在哪条路径上、等待时刻是多少、等待位置坐标是多少、等待期间 footprint 如何占用空间，都被记录在 \verb|trajectory_schedule.csv| 中。
+
+这一可视化也解释了为什么 P3 输出需要同时保留 \verb|schedule_result.csv| 和 \verb|trajectory_schedule.csv|。前者记录任务完成时间、等待时间和延期情况，后者记录每台 AMR 在任意时刻实际位于仓库平面的哪个位置。单纯读取任务级时间表不足以复核二维空间占用。
+
+除图 \ref{fig:p3-original-vs-repaired-snapshot} 所示的静态快照外，P3 还在 \verb|outputs/p3| 中输出了原始轨迹动画和三种修复模式动画。动画中每台 AMR 用带半径的圆表示 footprint，尾迹表示已经走过的轨迹，红色圆圈标识冲突位置；当某台 AMR 完成全部任务后，其显示会淡化，表示不再参与后续冲突检测。需要注意的是，动画只承担可视化作用，不能替代 CSV 文件中的轨迹与指标记录；真正用于判断最终方案是否无冲突的依据仍是 \verb|repair_summary.csv| 和 \verb|trajectory_schedule.csv|。
+
+这些动画的意义不是替代 CSV 结果，而是用于解释 CSV 结果背后的执行过程。表格能够说明“冲突数从 21 变成 0”，动画则能够说明“冲突发生在哪里、哪台车等待、等待后空间关系如何变化”。将静态快照、修复摘要表和冲突日志结合起来，可以形成较完整的证据链：原始任务级计划存在执行冲突，P3 通过局部中途等待改变轨迹时序，最终输出的时空轨迹重新检测后无冲突。

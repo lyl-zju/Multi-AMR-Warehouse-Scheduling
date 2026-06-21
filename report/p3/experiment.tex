@@ -31,6 +31,17 @@ P3 任务总延期 & 0.0 \\
 
 从修复过程看，典型动作是中途等待让行：AMR2/T02、AMR3/T01 和 AMR4/T08 分别在载货路径上加入主要等待，使冲突数逐步下降并最终清零。等待压缩后，最终新增等待为 16.0 秒，其中 AMR2/T02、AMR3/T01 和 AMR4/T08 分别承担 4.0、4.0 和 8.0 秒。最终轨迹表共 1800 条采样记录，其中 \verb|mid_path_wait_loaded| 有 163 条，说明 P3 不是简单整体延后任务，而是在载货路径靠近冲突点前插入停车让行片段。
 
+进一步观察轨迹段分布，可以看到最终轨迹并不是单纯的移动轨迹集合，而是包含了移动、服务、等待和让行过程。当前 1800 条采样记录中，\verb|loaded| 为 796 条，\verb|transition| 为 537 条，\verb|service_at_pickup| 为 282 条，\verb|wait_at_pickup| 为 22 条，\verb|mid_path_wait_loaded| 为 163 条。图 \ref{fig:p3-output-evidence-charts} 将修复日志和轨迹段分布放在同一张图中：左侧显示选中模式下剩余冲突数按 $21\rightarrow16\rightarrow7\rightarrow4\rightarrow2\rightarrow0$ 逐步下降，右侧显示最终轨迹中载货、空驶、服务和中途等待的记录规模。
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.90\linewidth]{p3_output_evidence_charts.png}
+\caption{P3 修复日志与轨迹段分布}
+\label{fig:p3-output-evidence-charts}
+\end{figure}
+
+图 \ref{fig:p3-output-evidence-charts} 进一步说明，P3 的主要修复动作落在载货路径中途等待上，而不是在任务开始前整体延后；这也与 \verb|reroute_count=0|、\verb|resequence_count=0| 的统计结果一致。
+
 该结果也揭示了 P3 当前修复机制的适用范围：本算例主要验证了中途等待修复对轨迹冲突的消解能力，换路和同车局部换序虽然作为候选机制保留，但本次最终解中没有实际触发。若换成候选路径差异更明显、瓶颈通道更拥堵的地图，或在目标函数中提高等待与 $C_{\max}$ 权重、降低换路或换序惩罚，后两类动作才更可能体现收益。因此，本文将换路和换序表述为扩展能力，而不是当前实验的主要数值贡献。
 
 从工程角度看，P3 的输出文件同时保留任务级时间表和轨迹级采样表。\verb|schedule_result.csv| 保留任务级字段，便于复核开始时间、完成时间、等待和延期；\verb|trajectory_schedule.csv| 记录最终二维轨迹，便于复核每个采样点的空间占用。
