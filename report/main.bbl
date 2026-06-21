@@ -1,0 +1,30 @@
+\begin{thebibliography}{1}
+
+\bibitem{ahuja1993network}
+Ravindra~K. Ahuja, Thomas~L. Magnanti, and James~B. Orlin.
+\newblock {\em Network Flows: Theory, Algorithms, and Applications}.
+\newblock Prentice Hall, 1993.
+
+\bibitem{dijkstra1959note}
+Edsger~W. Dijkstra.
+\newblock A note on two problems in connexion with graphs.
+\newblock {\em Numerische Mathematik}, 1:269--271, 1959.
+
+\bibitem{hart1968formal}
+Peter~E. Hart, Nils~J. Nilsson, and Bertram Raphael.
+\newblock A formal basis for the heuristic determination of minimum cost paths.
+\newblock {\em IEEE Transactions on Systems Science and Cybernetics},
+  4(2):100--107, 1968.
+
+\bibitem{sharon2015conflict}
+Guni Sharon, Roni Stern, Ariel Felner, and Nathan~R. Sturtevant.
+\newblock Conflict-based search for optimal multi-agent pathfinding.
+\newblock {\em Artificial Intelligence}, 219:40--66, 2015.
+
+\bibitem{lozano1979algorithm}
+Tomas Lozano-Perez and Michael~A. Wesley.
+\newblock An algorithm for planning collision-free paths among polyhedral
+  obstacles.
+\newblock {\em Communications of the ACM}, 22(10):560--570, 1979.
+
+\end{thebibliography}

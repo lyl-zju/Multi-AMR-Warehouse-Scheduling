@@ -114,6 +114,8 @@ DAVG 还加入活跃区域建图：对每个 OD 对，只把起终点走廊附�
 
 在当前静态主算例中，DAVG 的平均动态代价为 0，说明选出的路径没有进入动态风险缓冲区。因此，DAVG 与 AVG 的几何距离、转角数和总成本在 P1 层面基本一致。这不是 DAVG 失效，而是说明当前静态路径比较没有触发风险绕行；DAVG 的风险绕行价值会在动态事件或封锁场景中体现。
 
+\input{p1/representative_path}
+
 \subsection{输出接口}
 
 P1 的主要输出位于 \verb|data/processed/p1/<algorithm>/|：

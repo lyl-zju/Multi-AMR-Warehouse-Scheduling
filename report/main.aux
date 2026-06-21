@@ -53,204 +53,210 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}VG：可视图几何最短路}{13}{subsection.4.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}AVG：加入转角偏好的增强可视图}{13}{subsection.4.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.6}DAVG：动态风险代价与活跃可视图}{14}{subsection.4.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}输出接口}{14}{subsection.4.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}P2：任务分配、任务排序与路径选择模型}{15}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}联合决策内容}{15}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}调度预处理：候选路径构建与代价换算}{15}{subsection.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{第一步：构建 mixed 多候选路径库。}{16}{paragraph*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{第二步：将路径转换为调度代价。}{16}{paragraph*.30}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces P2 构建的 mixed 路径库中各 OD 对候选数量}}{17}{figure.caption.28}\protected@file@percent }
-\newlabel{fig:p2-mixed-candidate-heatmap}{{2}{17}{P2 构建的 mixed 路径库中各 OD 对候选数量}{figure.caption.28}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces P2 在 mixed 候选路径库中的择路示例}}{17}{figure.caption.29}\protected@file@percent }
-\newlabel{fig:p2-candidate-selection}{{3}{17}{P2 在 mixed 候选路径库中的择路示例}{figure.caption.29}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}任务分配--排序--路径选择联合优化模型}{18}{subsection.5.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces P2 主要集合与参数}}{19}{table.caption.31}\protected@file@percent }
-\newlabel{tab:p2-params}{{4}{19}{P2 主要集合与参数}{table.caption.31}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces P2 主要决策变量}}{19}{table.caption.32}\protected@file@percent }
-\newlabel{tab:p2-variables}{{5}{19}{P2 主要决策变量}{table.caption.32}{}}
-\@writefile{toc}{\contentsline {paragraph}{任务唯一分配。}{20}{paragraph*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{AMR 任务链。}{20}{paragraph*.34}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{候选路径选择。}{20}{paragraph*.35}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{时间衔接。}{20}{paragraph*.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{时间窗、延期与负载。}{20}{paragraph*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{电量安全。}{21}{paragraph*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}分层目标规划与方案评价准则}{21}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{可行性层。}{21}{paragraph*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{服务质量层。}{21}{paragraph*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{时间效率层。}{22}{paragraph*.41}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{运行成本层。}{22}{paragraph*.42}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}求解策略：精确建模与启发式扩展}{22}{subsection.5.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces P2 求解方法}}{22}{table.caption.43}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{m0：修复版贪心基线。}{23}{paragraph*.44}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{m1：两阶段分解求解。}{23}{paragraph*.45}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{m2：联合 MILP 与目标规划序贯求解。}{23}{paragraph*.46}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{m3：后悔值插入与局部搜索启发式。}{24}{paragraph*.47}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}P3：时空轨迹展开与冲突修复}{25}{section.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}输入输出}{25}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}轨迹展开模型}{25}{subsection.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}冲突检测模型}{26}{subsection.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}局部修复策略}{27}{subsection.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}目标函数与选择规则}{28}{subsection.6.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}输出文件与复现实验检查}{28}{subsection.6.6}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces P3 结构化输出文件}}{29}{table.caption.48}\protected@file@percent }
-\newlabel{tab:p3-output-files}{{7}{29}{P3 结构化输出文件}{table.caption.48}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}数据接口与工程日志}{29}{subsection.6.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.8}方法局限与全局最优讨论}{29}{subsection.6.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}P4：动态事件与滚动时域重排}{30}{section.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}输入输出}{30}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}滚动重排过程概述}{31}{subsection.7.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}动态事件建模}{31}{subsection.7.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces P4 动态事件类型与处理方式}}{32}{table.caption.49}\protected@file@percent }
-\newlabel{tab:p4-event-types}{{8}{32}{P4 动态事件类型与处理方式}{table.caption.49}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}滚动时域集合划分}{32}{subsection.7.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}混合整数规划抽象}{33}{subsection.7.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces P4 动态重排的主要决策变量}}{33}{table.caption.50}\protected@file@percent }
-\newlabel{tab:p4-decision-vars}{{9}{33}{P4 动态重排的主要决策变量}{table.caption.50}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}字典序目标规划}{35}{subsection.7.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}求解策略与实现流程}{36}{subsection.7.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {8}P5：系统容量与灵敏度分析模型}{37}{section.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}P5 方法框架与参数定义}{37}{subsection.8.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}AMR 数量的资源边际分析模型}{37}{subsection.8.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}任务负荷与系统容量边界模型}{38}{subsection.8.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}瓶颈空间簇与容量影子价值模型}{39}{subsection.8.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.1}边界工况与离散影子价值}{39}{subsubsection.8.4.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 瓶颈空间簇容量灵敏度分析流程}}{40}{figure.4}\protected@file@percent }
-\newlabel{fig:stage4-sensitivity-flow}{{4}{40}{瓶颈空间簇容量灵敏度分析流程}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.4.2}前置筛选方法}{40}{subsubsection.8.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Morris 与 Sobol 全局灵敏度模型}{40}{subsection.8.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.1}Morris 基本效应定义}{41}{subsubsection.8.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.2}Sobol 方差分解定义}{41}{subsubsection.8.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}综合实验与结果分析}{42}{section.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}P1 候选路径生成实验与对比}{42}{subsection.9.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.1.1}算法对比实验设计}{42}{subsubsection.9.1.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces P1 四类单算法总体指标对比}}{42}{table.caption.51}\protected@file@percent }
-\newlabel{tab:p1-algorithm-summary}{{10}{42}{P1 四类单算法总体指标对比}{table.caption.51}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.1.2}代表性 OD 对路径形态比较}{42}{subsubsection.9.1.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces P1 四类算法在距离、转角、动态代价和总成本上的总体对比}}{43}{figure.caption.52}\protected@file@percent }
-\newlabel{fig:p1-algorithm-metrics}{{5}{43}{P1 四类算法在距离、转角、动态代价和总成本上的总体对比}{figure.caption.52}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces \texttt  {IN1 -> P5} 的四类 P1 路径形态对比}}{43}{figure.caption.53}\protected@file@percent }
-\newlabel{fig:p1-compare-in1-p5}{{6}{43}{\texttt {IN1 -> P5} 的四类 P1 路径形态对比}{figure.caption.53}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces 代表性 OD 对的路径指标对比}}{44}{table.caption.54}\protected@file@percent }
-\newlabel{tab:p1-pair-metrics}{{11}{44}{代表性 OD 对的路径指标对比}{table.caption.54}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.1.3}路径生成结果概述}{44}{subsubsection.9.1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}P2 任务级调度模型对比与分析}{45}{subsection.9.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.1}静态调度结果与模型有效性校验}{45}{subsubsection.9.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{代表性方案选择。}{45}{paragraph*.55}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{静态任务链结果。}{45}{paragraph*.56}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces P2 基础算例静态任务链结果}}{45}{table.caption.57}\protected@file@percent }
-\newlabel{tab:p2-static-sequence}{{12}{45}{P2 基础算例静态任务链结果}{table.caption.57}{}}
-\@writefile{toc}{\contentsline {paragraph}{空间分布校验。}{45}{paragraph*.58}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces P2 基础算例任务链空间分布}}{46}{figure.caption.59}\protected@file@percent }
-\newlabel{fig:p2-static-map}{{7}{46}{P2 基础算例任务链空间分布}{figure.caption.59}{}}
-\@writefile{toc}{\contentsline {paragraph}{可行性与接口校验。}{46}{paragraph*.60}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces P2 基础算例可行性验收}}{46}{table.caption.61}\protected@file@percent }
-\newlabel{tab:p2-feasibility-check}{{13}{46}{P2 基础算例可行性验收}{table.caption.61}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.2}实验设计与评价口径}{46}{subsubsection.9.2.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.3}基础算例方法对比}{47}{subsubsection.9.2.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces P2 基础算例方法对比}}{47}{table.caption.62}\protected@file@percent }
-\newlabel{tab:p2-method-comparison}{{14}{47}{P2 基础算例方法对比}{table.caption.62}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces P2 四类求解方法对比}}{47}{figure.caption.63}\protected@file@percent }
-\newlabel{fig:p2-method-comparison}{{8}{47}{P2 四类求解方法对比}{figure.caption.63}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.4}路径源与 mixed 候选库影响}{48}{subsubsection.9.2.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces 不同路径源对 P2 调度结果的影响}}{48}{table.caption.64}\protected@file@percent }
-\newlabel{tab:p2-path-source-comparison}{{15}{48}{不同路径源对 P2 调度结果的影响}{table.caption.64}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces 不同路径源对 P2 指标的影响}}{48}{figure.caption.65}\protected@file@percent }
-\newlabel{fig:p2-path-source-comparison}{{9}{48}{不同路径源对 P2 指标的影响}{figure.caption.65}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.5}启发式求解的消融验证}{49}{subsubsection.9.2.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces m3 启发式求解策略消融实验}}{49}{table.caption.66}\protected@file@percent }
-\newlabel{tab:p2-ablation}{{16}{49}{m3 启发式求解策略消融实验}{table.caption.66}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.6}AMR 数量敏感性分析}{49}{subsubsection.9.2.6}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces AMR 数量敏感性实验结果}}{49}{table.caption.67}\protected@file@percent }
-\newlabel{tab:p2-amr-sensitivity}{{17}{49}{AMR 数量敏感性实验结果}{table.caption.67}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces AMR 数量敏感性分析}}{50}{figure.caption.68}\protected@file@percent }
-\newlabel{fig:p2-amr-sensitivity}{{10}{50}{AMR 数量敏感性分析}{figure.caption.68}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.7}任务密度敏感性分析}{50}{subsubsection.9.2.7}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces 任务密度敏感性实验结果}}{50}{table.caption.69}\protected@file@percent }
-\newlabel{tab:p2-task-density}{{18}{50}{任务密度敏感性实验结果}{table.caption.69}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces 任务密度敏感性分析}}{51}{figure.caption.70}\protected@file@percent }
-\newlabel{fig:p2-task-density}{{11}{51}{任务密度敏感性分析}{figure.caption.70}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.8}实验综合结论与项目价值}{51}{subsubsection.9.2.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}P3 时空轨迹展开与冲突修复实验}{51}{subsection.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.3.1}可视化结果与轨迹解释}{51}{subsubsection.9.3.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces P3 原始轨迹与修复后轨迹快照对比}}{52}{figure.caption.71}\protected@file@percent }
-\newlabel{fig:p3-original-vs-repaired-snapshot}{{12}{52}{P3 原始轨迹与修复后轨迹快照对比}{figure.caption.71}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.3.2}轨迹级综合验收结果}{53}{subsubsection.9.3.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces P3 轨迹级综合验收指标}}{53}{table.caption.72}\protected@file@percent }
-\newlabel{tab:p3-repair}{{19}{53}{P3 轨迹级综合验收指标}{table.caption.72}{}}
-\newlabel{tab:p3-experiment-summary}{{19}{53}{P3 轨迹级综合验收指标}{table.caption.72}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces P3 修复日志与轨迹段分布}}{54}{figure.caption.73}\protected@file@percent }
-\newlabel{fig:p3-output-evidence-charts}{{13}{54}{P3 修复日志与轨迹段分布}{figure.caption.73}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}P4 动态滚动时域重排实验}{54}{subsection.9.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.1}滚动重排核心指标}{54}{subsubsection.9.4.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces P4 滚动重排主结果}}{55}{table.caption.74}\protected@file@percent }
-\newlabel{tab:p4-summary}{{20}{55}{P4 滚动重排主结果}{table.caption.74}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.2}动态事件影响范围}{55}{subsubsection.9.4.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces P4 动态事件影响范围}}{55}{table.caption.75}\protected@file@percent }
-\newlabel{tab:p4-event-impact}{{21}{55}{P4 动态事件影响范围}{table.caption.75}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces P4 动态事件与重排甘特图}}{56}{figure.caption.76}\protected@file@percent }
-\newlabel{fig:p4-gantt}{{14}{56}{P4 动态事件与重排甘特图}{figure.caption.76}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces P4 重排后轨迹地图}}{56}{figure.caption.77}\protected@file@percent }
-\newlabel{fig:p4-map}{{15}{56}{P4 重排后轨迹地图}{figure.caption.77}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces P4 动态滚动重排过程快照}}{57}{figure.caption.78}\protected@file@percent }
-\newlabel{fig:p4-process}{{16}{57}{P4 动态滚动重排过程快照}{figure.caption.78}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.3}重排任务明细}{57}{subsubsection.9.4.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces P4 重排任务明细}}{57}{table.caption.79}\protected@file@percent }
-\newlabel{tab:p4-task-change}{{22}{57}{P4 重排任务明细}{table.caption.79}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.4}可行性验证}{58}{subsubsection.9.4.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces P4 最终方案硬约束验证}}{58}{table.caption.80}\protected@file@percent }
-\newlabel{tab:p4-feasibility}{{23}{58}{P4 最终方案硬约束验证}{table.caption.80}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.5}目标函数指标解释}{58}{subsubsection.9.4.5}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces P4 事件影响与可行性指标}}{59}{figure.caption.81}\protected@file@percent }
-\newlabel{fig:p4-impact}{{17}{59}{P4 事件影响与可行性指标}{figure.caption.81}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {18}{\ignorespaces P4 方法对比输出}}{59}{figure.caption.82}\protected@file@percent }
-\newlabel{fig:p4-method}{{18}{59}{P4 方法对比输出}{figure.caption.82}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces P4 目标函数指标}}{60}{table.caption.83}\protected@file@percent }
-\newlabel{tab:p4-objective}{{24}{60}{P4 目标函数指标}{table.caption.83}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {19}{\ignorespaces P4 目标权重配置敏感性结果}}{60}{figure.caption.84}\protected@file@percent }
-\newlabel{fig:p4-weight}{{19}{60}{P4 目标权重配置敏感性结果}{figure.caption.84}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.6}与中间候选方案的比较}{60}{subsubsection.9.4.6}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces P4 新任务插入候选效果比较}}{61}{table.caption.85}\protected@file@percent }
-\newlabel{tab:p4-candidate-compare}{{25}{61}{P4 新任务插入候选效果比较}{table.caption.85}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.7}图形结果解释}{61}{subsubsection.9.4.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.8}适用范围与扩展实验}{61}{subsubsection.9.4.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.5}P5 系统容量评估与灵敏度分析结果}{62}{subsection.9.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.1}基线校验与占用热点结果}{62}{subsubsection.9.5.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces 基线工况关键结果}}{62}{table.26}\protected@file@percent }
-\newlabel{tab:baseline-summary}{{26}{62}{基线工况关键结果}{table.26}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces 基线轨迹占用热点}}{62}{table.27}\protected@file@percent }
-\newlabel{tab:baseline-hotspots}{{27}{62}{基线轨迹占用热点}{table.27}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {20}{\ignorespaces 基线工况下的重排甘特图与轨迹占用热图}}{63}{figure.20}\protected@file@percent }
-\newlabel{fig:baseline-dashboard}{{20}{63}{基线工况下的重排甘特图与轨迹占用热图}{figure.20}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.2}AMR 数量资源边际结果}{63}{subsubsection.9.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.6.1}代表性 OD 对路径形态比较}{14}{subsubsection.4.6.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \texttt  {IN1 -> P5} 的四类 P1 路径形态对比}}{15}{figure.caption.27}\protected@file@percent }
+\newlabel{fig:p1-compare-in1-p5}{{2}{15}{\texttt {IN1 -> P5} 的四类 P1 路径形态对比}{figure.caption.27}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 代表性 OD 对的路径指标对比}}{15}{table.caption.28}\protected@file@percent }
+\newlabel{tab:p1-pair-metrics}{{4}{15}{代表性 OD 对的路径指标对比}{table.caption.28}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}输出接口}{16}{subsection.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}P2：任务分配、任务排序与路径选择模型}{16}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}模块定位与联合决策内容}{16}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}调度预处理：候选路径构建与代价换算}{17}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{第一步：构建 mixed 多候选路径库。}{17}{paragraph*.29}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces P2 构建的 mixed 路径库中各 OD 对候选数量}}{18}{figure.caption.30}\protected@file@percent }
+\newlabel{fig:p2-mixed-candidate-heatmap}{{3}{18}{P2 构建的 mixed 路径库中各 OD 对候选数量}{figure.caption.30}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces P2 在 mixed 候选路径库中的择路示例}}{18}{figure.caption.31}\protected@file@percent }
+\newlabel{fig:p2-candidate-selection}{{4}{18}{P2 在 mixed 候选路径库中的择路示例}{figure.caption.31}{}}
+\@writefile{toc}{\contentsline {paragraph}{第二步：将路径转换为调度代价。}{19}{paragraph*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}任务分配--排序--路径选择联合优化模型}{19}{subsection.5.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces P2 主要集合与参数}}{20}{table.caption.33}\protected@file@percent }
+\newlabel{tab:p2-params}{{5}{20}{P2 主要集合与参数}{table.caption.33}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces P2 主要决策变量}}{20}{table.caption.34}\protected@file@percent }
+\newlabel{tab:p2-variables}{{6}{20}{P2 主要决策变量}{table.caption.34}{}}
+\@writefile{toc}{\contentsline {paragraph}{任务唯一分配。}{21}{paragraph*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{AMR 任务链。}{21}{paragraph*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{候选路径选择。}{21}{paragraph*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{时间衔接。}{21}{paragraph*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{时间窗、延期与负载。}{21}{paragraph*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{电量安全。}{22}{paragraph*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}分层目标规划与方案评价准则}{22}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{可行性层。}{22}{paragraph*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{服务质量层。}{22}{paragraph*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{时间效率层。}{23}{paragraph*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{运行成本层。}{23}{paragraph*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}求解策略：精确建模与启发式扩展}{23}{subsection.5.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces P2 求解方法}}{23}{table.caption.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{m0：修复版贪心基线。}{24}{paragraph*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{m1：两阶段分解求解。}{24}{paragraph*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{m2：联合 MILP 与目标规划序贯求解。}{24}{paragraph*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{m3：后悔值插入与局部搜索启发式。}{25}{paragraph*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}静态调度结果与模型有效性校验}{26}{subsection.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{代表性方案选择。}{26}{paragraph*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{静态任务链结果。}{26}{paragraph*.51}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces P2 基础算例静态任务链结果}}{26}{table.caption.52}\protected@file@percent }
+\newlabel{tab:p2-static-sequence}{{8}{26}{P2 基础算例静态任务链结果}{table.caption.52}{}}
+\@writefile{toc}{\contentsline {paragraph}{空间分布校验。}{26}{paragraph*.53}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces P2 基础算例任务链空间分布}}{27}{figure.caption.54}\protected@file@percent }
+\newlabel{fig:p2-static-map}{{5}{27}{P2 基础算例任务链空间分布}{figure.caption.54}{}}
+\@writefile{toc}{\contentsline {paragraph}{可行性与接口校验。}{27}{paragraph*.55}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces P2 基础算例可行性验收}}{27}{table.caption.56}\protected@file@percent }
+\newlabel{tab:p2-feasibility-check}{{9}{27}{P2 基础算例可行性验收}{table.caption.56}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}与后续模块的接口边界}{27}{subsection.5.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}P3：时空轨迹展开与冲突修复}{28}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}输入输出}{28}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}轨迹展开模型}{29}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}冲突检测模型}{29}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}局部修复策略}{30}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}目标函数与选择规则}{31}{subsection.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.5.1}可视化结果与轨迹解释}{32}{subsubsection.6.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces P3 原始轨迹与修复后轨迹快照对比}}{32}{figure.caption.57}\protected@file@percent }
+\newlabel{fig:p3-original-vs-repaired-snapshot}{{6}{32}{P3 原始轨迹与修复后轨迹快照对比}{figure.caption.57}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}输出文件与复现实验检查}{33}{subsection.6.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces P3 结构化输出文件}}{33}{table.caption.58}\protected@file@percent }
+\newlabel{tab:p3-output-files}{{10}{33}{P3 结构化输出文件}{table.caption.58}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}数据接口与工程日志}{33}{subsection.6.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.8}方法局限与全局最优讨论}{34}{subsection.6.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}P4：动态事件与滚动时域重排}{34}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}输入输出}{34}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}滚动重排过程概述}{35}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}动态事件建模}{36}{subsection.7.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces P4 动态事件类型与处理方式}}{36}{table.caption.59}\protected@file@percent }
+\newlabel{tab:p4-event-types}{{11}{36}{P4 动态事件类型与处理方式}{table.caption.59}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}滚动时域集合划分}{36}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}混合整数规划抽象}{37}{subsection.7.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces P4 动态重排的主要决策变量}}{37}{table.caption.60}\protected@file@percent }
+\newlabel{tab:p4-decision-vars}{{12}{37}{P4 动态重排的主要决策变量}{table.caption.60}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}字典序目标规划}{39}{subsection.7.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}求解策略与实现流程}{40}{subsection.7.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}P5：系统容量与灵敏度分析模型}{41}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}P5 方法框架与参数定义}{41}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}基线校验与占用热点识别}{41}{subsection.8.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces 基线工况关键结果}}{41}{table.13}\protected@file@percent }
+\newlabel{tab:baseline-summary}{{13}{41}{基线工况关键结果}{table.13}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces 基线轨迹占用热点}}{41}{table.14}\protected@file@percent }
+\newlabel{tab:baseline-hotspots}{{14}{41}{基线轨迹占用热点}{table.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 基线工况下的重排甘特图与轨迹占用热图}}{42}{figure.7}\protected@file@percent }
+\newlabel{fig:baseline-dashboard}{{7}{42}{基线工况下的重排甘特图与轨迹占用热图}{figure.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}AMR 数量的资源边际分析模型}{42}{subsection.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}任务负荷与系统容量边界模型}{43}{subsection.8.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}瓶颈空间簇与容量影子价值模型}{44}{subsection.8.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.1}边界工况与离散影子价值}{44}{subsubsection.8.5.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 瓶颈空间簇容量灵敏度分析流程}}{45}{figure.8}\protected@file@percent }
+\newlabel{fig:stage4-sensitivity-flow}{{8}{45}{瓶颈空间簇容量灵敏度分析流程}{figure.8}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.5.2}前置筛选方法}{45}{subsubsection.8.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.6}Morris 与 Sobol 全局灵敏度模型}{46}{subsection.8.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.1}Morris 基本效应定义}{46}{subsubsection.8.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.6.2}Sobol 方差分解定义}{46}{subsubsection.8.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}综合实验与结果分析}{48}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}P1 候选路径生成实验与对比}{48}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.1.1}算法对比实验设计}{48}{subsubsection.9.1.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces P1 四类单算法总体指标对比}}{48}{table.caption.61}\protected@file@percent }
+\newlabel{tab:p1-algorithm-summary}{{15}{48}{P1 四类单算法总体指标对比}{table.caption.61}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.1.2}路径生成结果概述}{48}{subsubsection.9.1.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces P1 四类算法在距离、转角、动态代价和总成本上的总体对比}}{49}{figure.caption.62}\protected@file@percent }
+\newlabel{fig:p1-algorithm-metrics}{{9}{49}{P1 四类算法在距离、转角、动态代价和总成本上的总体对比}{figure.caption.62}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}P2 任务级调度模型对比与分析}{49}{subsection.9.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.1}实验设计与评价口径}{49}{subsubsection.9.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.2}基础算例方法对比}{50}{subsubsection.9.2.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces P2 基础算例方法对比}}{50}{table.caption.63}\protected@file@percent }
+\newlabel{tab:p2-method-comparison}{{16}{50}{P2 基础算例方法对比}{table.caption.63}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces P2 四类求解方法对比}}{50}{figure.caption.64}\protected@file@percent }
+\newlabel{fig:p2-method-comparison}{{10}{50}{P2 四类求解方法对比}{figure.caption.64}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.3}路径源与 mixed 候选库影响}{50}{subsubsection.9.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces 不同路径源对 P2 调度结果的影响}}{51}{table.caption.65}\protected@file@percent }
+\newlabel{tab:p2-path-source-comparison}{{17}{51}{不同路径源对 P2 调度结果的影响}{table.caption.65}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces 不同路径源对 P2 指标的影响}}{51}{figure.caption.66}\protected@file@percent }
+\newlabel{fig:p2-path-source-comparison}{{11}{51}{不同路径源对 P2 指标的影响}{figure.caption.66}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.4}启发式求解的消融验证}{51}{subsubsection.9.2.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces m3 启发式求解策略消融实验}}{52}{table.caption.67}\protected@file@percent }
+\newlabel{tab:p2-ablation}{{18}{52}{m3 启发式求解策略消融实验}{table.caption.67}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.5}AMR 数量敏感性分析}{52}{subsubsection.9.2.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces AMR 数量敏感性实验结果}}{52}{table.caption.68}\protected@file@percent }
+\newlabel{tab:p2-amr-sensitivity}{{19}{52}{AMR 数量敏感性实验结果}{table.caption.68}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces AMR 数量敏感性分析}}{53}{figure.caption.69}\protected@file@percent }
+\newlabel{fig:p2-amr-sensitivity}{{12}{53}{AMR 数量敏感性分析}{figure.caption.69}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.6}任务密度敏感性分析}{53}{subsubsection.9.2.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces 任务密度敏感性实验结果}}{53}{table.caption.70}\protected@file@percent }
+\newlabel{tab:p2-task-density}{{20}{53}{任务密度敏感性实验结果}{table.caption.70}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces 任务密度敏感性分析}}{54}{figure.caption.71}\protected@file@percent }
+\newlabel{fig:p2-task-density}{{13}{54}{任务密度敏感性分析}{figure.caption.71}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.2.7}实验综合结论与项目价值}{54}{subsubsection.9.2.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}P3 时空轨迹展开与冲突修复实验}{55}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.3.1}轨迹级综合验收结果}{55}{subsubsection.9.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces P3 轨迹级综合验收指标}}{55}{table.caption.72}\protected@file@percent }
+\newlabel{tab:p3-repair}{{21}{55}{P3 轨迹级综合验收指标}{table.caption.72}{}}
+\newlabel{tab:p3-experiment-summary}{{21}{55}{P3 轨迹级综合验收指标}{table.caption.72}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces P3 修复日志与轨迹段分布}}{56}{figure.caption.73}\protected@file@percent }
+\newlabel{fig:p3-output-evidence-charts}{{14}{56}{P3 修复日志与轨迹段分布}{figure.caption.73}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}P4 动态滚动时域重排实验}{56}{subsection.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.1}滚动重排核心指标}{56}{subsubsection.9.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces P4 滚动重排主结果}}{57}{table.caption.74}\protected@file@percent }
+\newlabel{tab:p4-summary}{{22}{57}{P4 滚动重排主结果}{table.caption.74}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.2}动态事件影响范围}{57}{subsubsection.9.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces P4 动态事件影响范围}}{57}{table.caption.75}\protected@file@percent }
+\newlabel{tab:p4-event-impact}{{23}{57}{P4 动态事件影响范围}{table.caption.75}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces P4 动态事件与重排甘特图}}{58}{figure.caption.76}\protected@file@percent }
+\newlabel{fig:p4-gantt}{{15}{58}{P4 动态事件与重排甘特图}{figure.caption.76}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces P4 重排后轨迹地图}}{58}{figure.caption.77}\protected@file@percent }
+\newlabel{fig:p4-map}{{16}{58}{P4 重排后轨迹地图}{figure.caption.77}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {17}{\ignorespaces P4 动态滚动重排过程快照}}{59}{figure.caption.78}\protected@file@percent }
+\newlabel{fig:p4-process}{{17}{59}{P4 动态滚动重排过程快照}{figure.caption.78}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.3}重排任务明细}{59}{subsubsection.9.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces P4 重排任务明细}}{59}{table.caption.79}\protected@file@percent }
+\newlabel{tab:p4-task-change}{{24}{59}{P4 重排任务明细}{table.caption.79}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.4}可行性验证}{60}{subsubsection.9.4.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces P4 最终方案硬约束验证}}{60}{table.caption.80}\protected@file@percent }
+\newlabel{tab:p4-feasibility}{{25}{60}{P4 最终方案硬约束验证}{table.caption.80}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.5}目标函数指标解释}{60}{subsubsection.9.4.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {18}{\ignorespaces P4 事件影响与可行性指标}}{61}{figure.caption.81}\protected@file@percent }
+\newlabel{fig:p4-impact}{{18}{61}{P4 事件影响与可行性指标}{figure.caption.81}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {19}{\ignorespaces P4 方法对比输出}}{61}{figure.caption.82}\protected@file@percent }
+\newlabel{fig:p4-method}{{19}{61}{P4 方法对比输出}{figure.caption.82}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces P4 目标函数指标}}{62}{table.caption.83}\protected@file@percent }
+\newlabel{tab:p4-objective}{{26}{62}{P4 目标函数指标}{table.caption.83}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {20}{\ignorespaces P4 目标权重配置敏感性结果}}{62}{figure.caption.84}\protected@file@percent }
+\newlabel{fig:p4-weight}{{20}{62}{P4 目标权重配置敏感性结果}{figure.caption.84}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.6}与中间候选方案的比较}{62}{subsubsection.9.4.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces P4 新任务插入候选效果比较}}{63}{table.caption.85}\protected@file@percent }
+\newlabel{tab:p4-candidate-compare}{{27}{63}{P4 新任务插入候选效果比较}{table.caption.85}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.7}图形结果解释}{63}{subsubsection.9.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.8}适用范围与扩展实验}{63}{subsubsection.9.4.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.5}P5 系统容量评估与灵敏度分析结果}{64}{subsection.9.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.1}AMR 数量资源边际结果}{64}{subsubsection.9.5.1}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {21}{\ignorespaces 固定任务集下 AMR 数量的资源前沿、前向有限差分、服务风险与车辆负载}}{64}{figure.21}\protected@file@percent }
 \newlabel{fig:amr-marginal}{{21}{64}{固定任务集下 AMR 数量的资源前沿、前向有限差分、服务风险与车辆负载}{figure.21}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces AMR 资源前沿}}{64}{table.28}\protected@file@percent }
-\newlabel{tab:amr-resource-frontier}{{28}{64}{AMR 资源前沿}{table.28}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces 增加一台 AMR 的前向有限差分}}{64}{table.29}\protected@file@percent }
-\newlabel{tab:amr-finite-diff}{{29}{64}{增加一台 AMR 的前向有限差分}{table.29}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.3}任务负荷容量边界结果}{64}{subsubsection.9.5.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {30}{\ignorespaces 任务负荷容量边界附近的离散扫描结果}}{64}{table.30}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces AMR 资源前沿}}{65}{table.28}\protected@file@percent }
+\newlabel{tab:amr-resource-frontier}{{28}{65}{AMR 资源前沿}{table.28}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces 增加一台 AMR 的前向有限差分}}{65}{table.29}\protected@file@percent }
+\newlabel{tab:amr-finite-diff}{{29}{65}{增加一台 AMR 的前向有限差分}{table.29}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.2}任务负荷容量边界结果}{65}{subsubsection.9.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {30}{\ignorespaces 任务负荷容量边界附近的离散扫描结果}}{65}{table.30}\protected@file@percent }
 \newlabel{tab:task-capacity-frontier}{{30}{65}{任务负荷容量边界附近的离散扫描结果}{table.30}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {22}{\ignorespaces 固定 4 台 AMR 下的任务负荷容量边界}}{65}{figure.22}\protected@file@percent }
 \newlabel{fig:task-capacity}{{22}{65}{固定 4 台 AMR 下的任务负荷容量边界}{figure.22}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.4}瓶颈空间簇容量放松结果}{65}{subsubsection.9.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.3}瓶颈空间簇容量放松结果}{66}{subsubsection.9.5.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {31}{\ignorespaces 候选瓶颈簇的容量放松有限差分}}{66}{table.31}\protected@file@percent }
 \newlabel{tab:bottleneck-capacity-test}{{31}{66}{候选瓶颈簇的容量放松有限差分}{table.31}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {23}{\ignorespaces 瓶颈空间簇容量松弛验证位置}}{66}{figure.23}\protected@file@percent }
-\newlabel{fig:stage4-bottleneck-cluster}{{23}{66}{瓶颈空间簇容量松弛验证位置}{figure.23}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.5}Morris 与 Sobol 全局灵敏度结果}{67}{subsubsection.9.5.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {23}{\ignorespaces 瓶颈空间簇容量松弛验证位置}}{67}{figure.23}\protected@file@percent }
+\newlabel{fig:stage4-bottleneck-cluster}{{23}{67}{瓶颈空间簇容量松弛验证位置}{figure.23}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.4}Morris 与 Sobol 全局灵敏度结果}{67}{subsubsection.9.5.4}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {32}{\ignorespaces Morris 全局筛选结果}}{67}{table.32}\protected@file@percent }
 \newlabel{tab:stage5-morris}{{32}{67}{Morris 全局筛选结果}{table.32}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {33}{\ignorespaces Sobol 方差分解结果}}{67}{table.33}\protected@file@percent }
-\newlabel{tab:stage5-sobol}{{33}{67}{Sobol 方差分解结果}{table.33}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {24}{\ignorespaces Sobol 一阶效应与总效应}}{67}{figure.24}\protected@file@percent }
-\newlabel{fig:stage5-sobol}{{24}{67}{Sobol 一阶效应与总效应}{figure.24}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {33}{\ignorespaces Sobol 方差分解结果}}{68}{table.33}\protected@file@percent }
+\newlabel{tab:stage5-sobol}{{33}{68}{Sobol 方差分解结果}{table.33}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {24}{\ignorespaces Sobol 一阶效应与总效应}}{68}{figure.24}\protected@file@percent }
+\newlabel{fig:stage5-sobol}{{24}{68}{Sobol 一阶效应与总效应}{figure.24}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.5}P5 实验结论}{68}{subsubsection.9.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}结论}{68}{section.10}\protected@file@percent }
 \citation{*}
 \bibstyle{unsrt}
 \bibdata{reference}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.5.6}P5 实验结论}{68}{subsubsection.9.5.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}结论}{68}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A}成员分工}{69}{appendix.A}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {34}{\ignorespaces 小组成员分工汇总}}{69}{table.caption.86}\protected@file@percent }
-\newlabel{tab:appendix-member-division}{{34}{69}{小组成员分工汇总}{table.caption.86}{}}
-\gdef \@abspage@last{70}
+\bibcite{ahuja1993network}{1}
+\bibcite{dijkstra1959note}{2}
+\bibcite{hart1968formal}{3}
+\bibcite{sharon2015conflict}{4}
+\bibcite{lozano1979algorithm}{5}
+\@writefile{toc}{\contentsline {section}{\numberline {A}成员分工}{70}{appendix.A}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {34}{\ignorespaces 小组成员分工汇总}}{70}{table.caption.87}\protected@file@percent }
+\newlabel{tab:appendix-member-division}{{34}{70}{小组成员分工汇总}{table.caption.87}{}}
+\gdef \@abspage@last{71}

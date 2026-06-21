@@ -39,92 +39,93 @@
 \contentsline {subsection}{\numberline {4.4}VG：可视图几何最短路}{13}{subsection.4.4}%
 \contentsline {subsection}{\numberline {4.5}AVG：加入转角偏好的增强可视图}{13}{subsection.4.5}%
 \contentsline {subsection}{\numberline {4.6}DAVG：动态风险代价与活跃可视图}{14}{subsection.4.6}%
-\contentsline {subsection}{\numberline {4.7}输出接口}{14}{subsection.4.7}%
-\contentsline {section}{\numberline {5}P2：任务分配、任务排序与路径选择模型}{15}{section.5}%
-\contentsline {subsection}{\numberline {5.1}联合决策内容}{15}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}调度预处理：候选路径构建与代价换算}{15}{subsection.5.2}%
-\contentsline {paragraph}{第一步：构建 mixed 多候选路径库。}{16}{paragraph*.27}%
-\contentsline {paragraph}{第二步：将路径转换为调度代价。}{16}{paragraph*.30}%
-\contentsline {subsection}{\numberline {5.3}任务分配--排序--路径选择联合优化模型}{18}{subsection.5.3}%
-\contentsline {paragraph}{任务唯一分配。}{20}{paragraph*.33}%
-\contentsline {paragraph}{AMR 任务链。}{20}{paragraph*.34}%
-\contentsline {paragraph}{候选路径选择。}{20}{paragraph*.35}%
-\contentsline {paragraph}{时间衔接。}{20}{paragraph*.36}%
-\contentsline {paragraph}{时间窗、延期与负载。}{20}{paragraph*.37}%
-\contentsline {paragraph}{电量安全。}{21}{paragraph*.38}%
-\contentsline {subsection}{\numberline {5.4}分层目标规划与方案评价准则}{21}{subsection.5.4}%
-\contentsline {paragraph}{可行性层。}{21}{paragraph*.39}%
-\contentsline {paragraph}{服务质量层。}{21}{paragraph*.40}%
-\contentsline {paragraph}{时间效率层。}{22}{paragraph*.41}%
-\contentsline {paragraph}{运行成本层。}{22}{paragraph*.42}%
-\contentsline {subsection}{\numberline {5.5}求解策略：精确建模与启发式扩展}{22}{subsection.5.5}%
-\contentsline {paragraph}{m0：修复版贪心基线。}{23}{paragraph*.44}%
-\contentsline {paragraph}{m1：两阶段分解求解。}{23}{paragraph*.45}%
-\contentsline {paragraph}{m2：联合 MILP 与目标规划序贯求解。}{23}{paragraph*.46}%
-\contentsline {paragraph}{m3：后悔值插入与局部搜索启发式。}{24}{paragraph*.47}%
-\contentsline {section}{\numberline {6}P3：时空轨迹展开与冲突修复}{25}{section.6}%
-\contentsline {subsection}{\numberline {6.1}输入输出}{25}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}轨迹展开模型}{25}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}冲突检测模型}{26}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}局部修复策略}{27}{subsection.6.4}%
-\contentsline {subsection}{\numberline {6.5}目标函数与选择规则}{28}{subsection.6.5}%
-\contentsline {subsection}{\numberline {6.6}输出文件与复现实验检查}{28}{subsection.6.6}%
-\contentsline {subsection}{\numberline {6.7}数据接口与工程日志}{29}{subsection.6.7}%
-\contentsline {subsection}{\numberline {6.8}方法局限与全局最优讨论}{29}{subsection.6.8}%
-\contentsline {section}{\numberline {7}P4：动态事件与滚动时域重排}{30}{section.7}%
-\contentsline {subsection}{\numberline {7.1}输入输出}{30}{subsection.7.1}%
-\contentsline {subsection}{\numberline {7.2}滚动重排过程概述}{31}{subsection.7.2}%
-\contentsline {subsection}{\numberline {7.3}动态事件建模}{31}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}滚动时域集合划分}{32}{subsection.7.4}%
-\contentsline {subsection}{\numberline {7.5}混合整数规划抽象}{33}{subsection.7.5}%
-\contentsline {subsection}{\numberline {7.6}字典序目标规划}{35}{subsection.7.6}%
-\contentsline {subsection}{\numberline {7.7}求解策略与实现流程}{36}{subsection.7.7}%
-\contentsline {section}{\numberline {8}P5：系统容量与灵敏度分析模型}{37}{section.8}%
-\contentsline {subsection}{\numberline {8.1}P5 方法框架与参数定义}{37}{subsection.8.1}%
-\contentsline {subsection}{\numberline {8.2}AMR 数量的资源边际分析模型}{37}{subsection.8.2}%
-\contentsline {subsection}{\numberline {8.3}任务负荷与系统容量边界模型}{38}{subsection.8.3}%
-\contentsline {subsection}{\numberline {8.4}瓶颈空间簇与容量影子价值模型}{39}{subsection.8.4}%
-\contentsline {subsubsection}{\numberline {8.4.1}边界工况与离散影子价值}{39}{subsubsection.8.4.1}%
-\contentsline {subsubsection}{\numberline {8.4.2}前置筛选方法}{40}{subsubsection.8.4.2}%
-\contentsline {subsection}{\numberline {8.5}Morris 与 Sobol 全局灵敏度模型}{40}{subsection.8.5}%
-\contentsline {subsubsection}{\numberline {8.5.1}Morris 基本效应定义}{41}{subsubsection.8.5.1}%
-\contentsline {subsubsection}{\numberline {8.5.2}Sobol 方差分解定义}{41}{subsubsection.8.5.2}%
-\contentsline {section}{\numberline {9}综合实验与结果分析}{42}{section.9}%
-\contentsline {subsection}{\numberline {9.1}P1 候选路径生成实验与对比}{42}{subsection.9.1}%
-\contentsline {subsubsection}{\numberline {9.1.1}算法对比实验设计}{42}{subsubsection.9.1.1}%
-\contentsline {subsubsection}{\numberline {9.1.2}代表性 OD 对路径形态比较}{42}{subsubsection.9.1.2}%
-\contentsline {subsubsection}{\numberline {9.1.3}路径生成结果概述}{44}{subsubsection.9.1.3}%
-\contentsline {subsection}{\numberline {9.2}P2 任务级调度模型对比与分析}{45}{subsection.9.2}%
-\contentsline {subsubsection}{\numberline {9.2.1}静态调度结果与模型有效性校验}{45}{subsubsection.9.2.1}%
-\contentsline {paragraph}{代表性方案选择。}{45}{paragraph*.55}%
-\contentsline {paragraph}{静态任务链结果。}{45}{paragraph*.56}%
-\contentsline {paragraph}{空间分布校验。}{45}{paragraph*.58}%
-\contentsline {paragraph}{可行性与接口校验。}{46}{paragraph*.60}%
-\contentsline {subsubsection}{\numberline {9.2.2}实验设计与评价口径}{46}{subsubsection.9.2.2}%
-\contentsline {subsubsection}{\numberline {9.2.3}基础算例方法对比}{47}{subsubsection.9.2.3}%
-\contentsline {subsubsection}{\numberline {9.2.4}路径源与 mixed 候选库影响}{48}{subsubsection.9.2.4}%
-\contentsline {subsubsection}{\numberline {9.2.5}启发式求解的消融验证}{49}{subsubsection.9.2.5}%
-\contentsline {subsubsection}{\numberline {9.2.6}AMR 数量敏感性分析}{49}{subsubsection.9.2.6}%
-\contentsline {subsubsection}{\numberline {9.2.7}任务密度敏感性分析}{50}{subsubsection.9.2.7}%
-\contentsline {subsubsection}{\numberline {9.2.8}实验综合结论与项目价值}{51}{subsubsection.9.2.8}%
-\contentsline {subsection}{\numberline {9.3}P3 时空轨迹展开与冲突修复实验}{51}{subsection.9.3}%
-\contentsline {subsubsection}{\numberline {9.3.1}可视化结果与轨迹解释}{51}{subsubsection.9.3.1}%
-\contentsline {subsubsection}{\numberline {9.3.2}轨迹级综合验收结果}{53}{subsubsection.9.3.2}%
-\contentsline {subsection}{\numberline {9.4}P4 动态滚动时域重排实验}{54}{subsection.9.4}%
-\contentsline {subsubsection}{\numberline {9.4.1}滚动重排核心指标}{54}{subsubsection.9.4.1}%
-\contentsline {subsubsection}{\numberline {9.4.2}动态事件影响范围}{55}{subsubsection.9.4.2}%
-\contentsline {subsubsection}{\numberline {9.4.3}重排任务明细}{57}{subsubsection.9.4.3}%
-\contentsline {subsubsection}{\numberline {9.4.4}可行性验证}{58}{subsubsection.9.4.4}%
-\contentsline {subsubsection}{\numberline {9.4.5}目标函数指标解释}{58}{subsubsection.9.4.5}%
-\contentsline {subsubsection}{\numberline {9.4.6}与中间候选方案的比较}{60}{subsubsection.9.4.6}%
-\contentsline {subsubsection}{\numberline {9.4.7}图形结果解释}{61}{subsubsection.9.4.7}%
-\contentsline {subsubsection}{\numberline {9.4.8}适用范围与扩展实验}{61}{subsubsection.9.4.8}%
-\contentsline {subsection}{\numberline {9.5}P5 系统容量评估与灵敏度分析结果}{62}{subsection.9.5}%
-\contentsline {subsubsection}{\numberline {9.5.1}基线校验与占用热点结果}{62}{subsubsection.9.5.1}%
-\contentsline {subsubsection}{\numberline {9.5.2}AMR 数量资源边际结果}{63}{subsubsection.9.5.2}%
-\contentsline {subsubsection}{\numberline {9.5.3}任务负荷容量边界结果}{64}{subsubsection.9.5.3}%
-\contentsline {subsubsection}{\numberline {9.5.4}瓶颈空间簇容量放松结果}{65}{subsubsection.9.5.4}%
-\contentsline {subsubsection}{\numberline {9.5.5}Morris 与 Sobol 全局灵敏度结果}{67}{subsubsection.9.5.5}%
-\contentsline {subsubsection}{\numberline {9.5.6}P5 实验结论}{68}{subsubsection.9.5.6}%
+\contentsline {subsubsection}{\numberline {4.6.1}代表性 OD 对路径形态比较}{14}{subsubsection.4.6.1}%
+\contentsline {subsection}{\numberline {4.7}输出接口}{16}{subsection.4.7}%
+\contentsline {section}{\numberline {5}P2：任务分配、任务排序与路径选择模型}{16}{section.5}%
+\contentsline {subsection}{\numberline {5.1}模块定位与联合决策内容}{16}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}调度预处理：候选路径构建与代价换算}{17}{subsection.5.2}%
+\contentsline {paragraph}{第一步：构建 mixed 多候选路径库。}{17}{paragraph*.29}%
+\contentsline {paragraph}{第二步：将路径转换为调度代价。}{19}{paragraph*.32}%
+\contentsline {subsection}{\numberline {5.3}任务分配--排序--路径选择联合优化模型}{19}{subsection.5.3}%
+\contentsline {paragraph}{任务唯一分配。}{21}{paragraph*.35}%
+\contentsline {paragraph}{AMR 任务链。}{21}{paragraph*.36}%
+\contentsline {paragraph}{候选路径选择。}{21}{paragraph*.37}%
+\contentsline {paragraph}{时间衔接。}{21}{paragraph*.38}%
+\contentsline {paragraph}{时间窗、延期与负载。}{21}{paragraph*.39}%
+\contentsline {paragraph}{电量安全。}{22}{paragraph*.40}%
+\contentsline {subsection}{\numberline {5.4}分层目标规划与方案评价准则}{22}{subsection.5.4}%
+\contentsline {paragraph}{可行性层。}{22}{paragraph*.41}%
+\contentsline {paragraph}{服务质量层。}{22}{paragraph*.42}%
+\contentsline {paragraph}{时间效率层。}{23}{paragraph*.43}%
+\contentsline {paragraph}{运行成本层。}{23}{paragraph*.44}%
+\contentsline {subsection}{\numberline {5.5}求解策略：精确建模与启发式扩展}{23}{subsection.5.5}%
+\contentsline {paragraph}{m0：修复版贪心基线。}{24}{paragraph*.46}%
+\contentsline {paragraph}{m1：两阶段分解求解。}{24}{paragraph*.47}%
+\contentsline {paragraph}{m2：联合 MILP 与目标规划序贯求解。}{24}{paragraph*.48}%
+\contentsline {paragraph}{m3：后悔值插入与局部搜索启发式。}{25}{paragraph*.49}%
+\contentsline {subsection}{\numberline {5.6}静态调度结果与模型有效性校验}{26}{subsection.5.6}%
+\contentsline {paragraph}{代表性方案选择。}{26}{paragraph*.50}%
+\contentsline {paragraph}{静态任务链结果。}{26}{paragraph*.51}%
+\contentsline {paragraph}{空间分布校验。}{26}{paragraph*.53}%
+\contentsline {paragraph}{可行性与接口校验。}{27}{paragraph*.55}%
+\contentsline {subsection}{\numberline {5.7}与后续模块的接口边界}{27}{subsection.5.7}%
+\contentsline {section}{\numberline {6}P3：时空轨迹展开与冲突修复}{28}{section.6}%
+\contentsline {subsection}{\numberline {6.1}输入输出}{28}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}轨迹展开模型}{29}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}冲突检测模型}{29}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}局部修复策略}{30}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}目标函数与选择规则}{31}{subsection.6.5}%
+\contentsline {subsubsection}{\numberline {6.5.1}可视化结果与轨迹解释}{32}{subsubsection.6.5.1}%
+\contentsline {subsection}{\numberline {6.6}输出文件与复现实验检查}{33}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}数据接口与工程日志}{33}{subsection.6.7}%
+\contentsline {subsection}{\numberline {6.8}方法局限与全局最优讨论}{34}{subsection.6.8}%
+\contentsline {section}{\numberline {7}P4：动态事件与滚动时域重排}{34}{section.7}%
+\contentsline {subsection}{\numberline {7.1}输入输出}{34}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}滚动重排过程概述}{35}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}动态事件建模}{36}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}滚动时域集合划分}{36}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}混合整数规划抽象}{37}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}字典序目标规划}{39}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.7}求解策略与实现流程}{40}{subsection.7.7}%
+\contentsline {section}{\numberline {8}P5：系统容量与灵敏度分析模型}{41}{section.8}%
+\contentsline {subsection}{\numberline {8.1}P5 方法框架与参数定义}{41}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}基线校验与占用热点识别}{41}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}AMR 数量的资源边际分析模型}{42}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}任务负荷与系统容量边界模型}{43}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}瓶颈空间簇与容量影子价值模型}{44}{subsection.8.5}%
+\contentsline {subsubsection}{\numberline {8.5.1}边界工况与离散影子价值}{44}{subsubsection.8.5.1}%
+\contentsline {subsubsection}{\numberline {8.5.2}前置筛选方法}{45}{subsubsection.8.5.2}%
+\contentsline {subsection}{\numberline {8.6}Morris 与 Sobol 全局灵敏度模型}{46}{subsection.8.6}%
+\contentsline {subsubsection}{\numberline {8.6.1}Morris 基本效应定义}{46}{subsubsection.8.6.1}%
+\contentsline {subsubsection}{\numberline {8.6.2}Sobol 方差分解定义}{46}{subsubsection.8.6.2}%
+\contentsline {section}{\numberline {9}综合实验与结果分析}{48}{section.9}%
+\contentsline {subsection}{\numberline {9.1}P1 候选路径生成实验与对比}{48}{subsection.9.1}%
+\contentsline {subsubsection}{\numberline {9.1.1}算法对比实验设计}{48}{subsubsection.9.1.1}%
+\contentsline {subsubsection}{\numberline {9.1.2}路径生成结果概述}{48}{subsubsection.9.1.2}%
+\contentsline {subsection}{\numberline {9.2}P2 任务级调度模型对比与分析}{49}{subsection.9.2}%
+\contentsline {subsubsection}{\numberline {9.2.1}实验设计与评价口径}{49}{subsubsection.9.2.1}%
+\contentsline {subsubsection}{\numberline {9.2.2}基础算例方法对比}{50}{subsubsection.9.2.2}%
+\contentsline {subsubsection}{\numberline {9.2.3}路径源与 mixed 候选库影响}{50}{subsubsection.9.2.3}%
+\contentsline {subsubsection}{\numberline {9.2.4}启发式求解的消融验证}{51}{subsubsection.9.2.4}%
+\contentsline {subsubsection}{\numberline {9.2.5}AMR 数量敏感性分析}{52}{subsubsection.9.2.5}%
+\contentsline {subsubsection}{\numberline {9.2.6}任务密度敏感性分析}{53}{subsubsection.9.2.6}%
+\contentsline {subsubsection}{\numberline {9.2.7}实验综合结论与项目价值}{54}{subsubsection.9.2.7}%
+\contentsline {subsection}{\numberline {9.3}P3 时空轨迹展开与冲突修复实验}{55}{subsection.9.3}%
+\contentsline {subsubsection}{\numberline {9.3.1}轨迹级综合验收结果}{55}{subsubsection.9.3.1}%
+\contentsline {subsection}{\numberline {9.4}P4 动态滚动时域重排实验}{56}{subsection.9.4}%
+\contentsline {subsubsection}{\numberline {9.4.1}滚动重排核心指标}{56}{subsubsection.9.4.1}%
+\contentsline {subsubsection}{\numberline {9.4.2}动态事件影响范围}{57}{subsubsection.9.4.2}%
+\contentsline {subsubsection}{\numberline {9.4.3}重排任务明细}{59}{subsubsection.9.4.3}%
+\contentsline {subsubsection}{\numberline {9.4.4}可行性验证}{60}{subsubsection.9.4.4}%
+\contentsline {subsubsection}{\numberline {9.4.5}目标函数指标解释}{60}{subsubsection.9.4.5}%
+\contentsline {subsubsection}{\numberline {9.4.6}与中间候选方案的比较}{62}{subsubsection.9.4.6}%
+\contentsline {subsubsection}{\numberline {9.4.7}图形结果解释}{63}{subsubsection.9.4.7}%
+\contentsline {subsubsection}{\numberline {9.4.8}适用范围与扩展实验}{63}{subsubsection.9.4.8}%
+\contentsline {subsection}{\numberline {9.5}P5 系统容量评估与灵敏度分析结果}{64}{subsection.9.5}%
+\contentsline {subsubsection}{\numberline {9.5.1}AMR 数量资源边际结果}{64}{subsubsection.9.5.1}%
+\contentsline {subsubsection}{\numberline {9.5.2}任务负荷容量边界结果}{65}{subsubsection.9.5.2}%
+\contentsline {subsubsection}{\numberline {9.5.3}瓶颈空间簇容量放松结果}{66}{subsubsection.9.5.3}%
+\contentsline {subsubsection}{\numberline {9.5.4}Morris 与 Sobol 全局灵敏度结果}{67}{subsubsection.9.5.4}%
+\contentsline {subsubsection}{\numberline {9.5.5}P5 实验结论}{68}{subsubsection.9.5.5}%
 \contentsline {section}{\numberline {10}结论}{68}{section.10}%
-\contentsline {section}{\numberline {A}成员分工}{69}{appendix.A}%
+\contentsline {section}{\numberline {A}成员分工}{70}{appendix.A}%
